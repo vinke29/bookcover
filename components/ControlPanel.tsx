@@ -2,6 +2,7 @@
 
 import type { TextStyle, CoverConcept, Template } from '@/lib/types'
 import { TEMPLATES } from '@/lib/templates'
+import { COLOR_GRADES } from '@/lib/grades'
 
 interface Props {
   titleStyle: TextStyle
@@ -18,6 +19,8 @@ interface Props {
   imageScale: number
   onImageScaleChange: (s: number) => void
   hasImage: boolean
+  colorGradeId: string
+  onColorGradeChange: (id: string) => void
   onEnableDepth: () => void
   isRemovingBg: boolean
   hasDepth: boolean
@@ -137,7 +140,7 @@ function TextStyleControl({
       </div>
       <div>
         <label className="text-xs text-zinc-500 block mb-1">Size — {style.fontSize}px</label>
-        <input type="range" min={10} max={80} value={style.fontSize}
+        <input type="range" min={10} max={160} value={style.fontSize}
           onChange={e => onChange({ ...style, fontSize: Number(e.target.value) })}
           className="w-full accent-indigo-500" />
       </div>
@@ -173,6 +176,7 @@ export default function ControlPanel({
   concept, onRegenerate, isGenerating,
   activeTemplateId, onApplyTemplate,
   imageScale, onImageScaleChange, hasImage,
+  colorGradeId, onColorGradeChange,
   onEnableDepth, isRemovingBg, hasDepth,
 }: Props) {
   return (
@@ -203,6 +207,29 @@ export default function ControlPanel({
               onChange={e => onImageScaleChange(Number(e.target.value) / 100)}
               className="w-full accent-indigo-500" />
             <p className="text-xs text-zinc-600">Drag the canvas to reposition</p>
+          </div>
+        )}
+
+        {/* ── Color Grade ───────────────────────────────────── */}
+        {hasImage && (
+          <div className="border-t border-zinc-800 pt-4">
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Color Grade</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {COLOR_GRADES.map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => onColorGradeChange(g.id)}
+                  className={`flex flex-col items-center gap-1.5 p-2 rounded border text-[9px] transition-all ${
+                    colorGradeId === g.id
+                      ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400'
+                      : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
+                  }`}
+                >
+                  <div className="w-5 h-5 rounded-full border border-zinc-600" style={{ background: g.swatch }} />
+                  {g.name}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

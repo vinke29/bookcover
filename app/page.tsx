@@ -38,6 +38,9 @@ export default function Home() {
   const [imagePos, setImagePos] = useState<Position>({ x: 0, y: 0 })
   const [imageScale, setImageScale] = useState(1)
 
+  // Color grade
+  const [colorGradeId, setColorGradeId] = useState('none')
+
   // Depth effect (text-behind-subject)
   const [cdnUrl, setCdnUrl] = useState<string | null>(null)
   const [fgImageUrl, setFgImageUrl] = useState<string | null>(null)
@@ -229,6 +232,7 @@ export default function Home() {
                     authorPos={authorPos}
                     imagePos={imagePos}
                     imageScale={imageScale}
+                    colorGradeId={colorGradeId}
                     template={activeTemplate}
                     onTitlePosChange={setTitlePos}
                     onAuthorPosChange={setAuthorPos}
@@ -253,6 +257,7 @@ export default function Home() {
               authorPos={authorPos}
               imagePos={imagePos}
               imageScale={imageScale}
+              colorGradeId={colorGradeId}
               template={activeTemplate}
               onTitlePosChange={setTitlePos}
               onAuthorPosChange={setAuthorPos}
@@ -278,6 +283,8 @@ export default function Home() {
           imageScale={imageScale}
           onImageScaleChange={setImageScale}
           hasImage={!!imageUrl}
+          colorGradeId={colorGradeId}
+          onColorGradeChange={setColorGradeId}
           onEnableDepth={handleEnableDepth}
           isRemovingBg={isRemovingBg}
           hasDepth={!!fgImageUrl}

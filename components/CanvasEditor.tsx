@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import type { TextStyle, Position, Template, OverlayStyle } from '@/lib/types'
 import { CANVAS_W, CANVAS_H } from '@/lib/templates'
+import { COLOR_GRADES } from '@/lib/grades'
 
 interface Props {
   imageUrl: string | null
@@ -16,6 +17,7 @@ interface Props {
   authorPos: Position
   imagePos: Position
   imageScale: number
+  colorGradeId: string
   template: Template
   onTitlePosChange: (pos: Position) => void
   onAuthorPosChange: (pos: Position) => void
@@ -115,6 +117,7 @@ function drawCover(
   canvas: HTMLCanvasElement,
   bgImage: HTMLImageElement | null,
   fgImage: HTMLImageElement | null,
+  colorGradeId: string,
   title: string,
   subtitle: string,
   author: string,
@@ -135,11 +138,26 @@ function drawCover(
   ctx.fillStyle = '#111118'
   ctx.fillRect(0, 0, W, H)
 
+  const grade = COLOR_GRADES.find(g => g.id === colorGradeId) ?? COLOR_GRADES[0]
+
   if (bgImage) {
     const baseScale = Math.max(W / bgImage.naturalWidth, H / bgImage.naturalHeight)
     const s = baseScale * imageScale
     const w = bgImage.naturalWidth * s, h = bgImage.naturalHeight * s
+    ctx.save()
+    if (grade.filter !== 'none') ctx.filter = grade.filter
     ctx.drawImage(bgImage, (W - w) / 2 + imagePos.x, (H - h) / 2 + imagePos.y, w, h)
+    ctx.restore()
+  }
+
+  // ── Color grade tint overlay ────────────────────────────────────────────────
+  if (grade.tint) {
+    ctx.save()
+    ctx.globalCompositeOperation = grade.tint.mode
+    ctx.globalAlpha = grade.tint.opacity
+    ctx.fillStyle = grade.tint.color
+    ctx.fillRect(0, 0, W, H)
+    ctx.restore()
   }
 
   // ── Color tint ─────────────────────────────────────────────────────────────
@@ -339,7 +357,11 @@ function drawCover(
     const baseScale = Math.max(W / fgImage.naturalWidth, H / fgImage.naturalHeight)
     const s = baseScale * imageScale
     const w = fgImage.naturalWidth * s, h = fgImage.naturalHeight * s
+    ctx.save()
+    // Blur feathers the transparent edges from rembg, removing hard cutout halos
+    ctx.filter = 'blur(1px)'
     ctx.drawImage(fgImage, (W - w) / 2 + imagePos.x, (H - h) / 2 + imagePos.y, w, h)
+    ctx.restore()
   }
 }
 
@@ -362,7 +384,7 @@ export default function CanvasEditor({
   imageUrl, fgImageUrl, title, subtitle, author,
   titleStyle, authorStyle,
   titlePos, authorPos,
-  imagePos, imageScale,
+  imagePos, imageScale, colorGradeId,
   template,
   onTitlePosChange, onAuthorPosChange, onImagePosChange,
   isLoading, exportRef,
@@ -383,9 +405,10 @@ export default function CanvasEditor({
   const authorStyleRef = useRef(authorStyle)
   const titlePosRef    = useRef(titlePos)
   const authorPosRef   = useRef(authorPos)
-  const imagePosRef    = useRef(imagePos)
-  const imageScaleRef  = useRef(imageScale)
-  const templateRef    = useRef(template)
+  const imagePosRef      = useRef(imagePos)
+  const imageScaleRef    = useRef(imageScale)
+  const colorGradeIdRef  = useRef(colorGradeId)
+  const templateRef      = useRef(template)
   const dragTargetRef  = useRef<'title' | 'author' | null>(null)
   titleRef.current       = title
   subtitleRef.current    = subtitle
@@ -394,9 +417,10 @@ export default function CanvasEditor({
   authorStyleRef.current = authorStyle
   titlePosRef.current    = titlePos
   authorPosRef.current   = authorPos
-  imagePosRef.current    = imagePos
-  imageScaleRef.current  = imageScale
-  templateRef.current    = template
+  imagePosRef.current      = imagePos
+  imageScaleRef.current    = imageScale
+  colorGradeIdRef.current  = colorGradeId
+  templateRef.current      = template
 
   const redraw = useCallback(() => {
     if (!canvasRef.current) return
@@ -404,6 +428,7 @@ export default function CanvasEditor({
       canvasRef.current,
       bgImageRef.current,
       fgImageRef.current,
+      colorGradeIdRef.current,
       titleRef.current,
       subtitleRef.current,
       authorRef.current,
@@ -424,7 +449,7 @@ export default function CanvasEditor({
 
   useEffect(() => {
     redraw()
-  }, [title, subtitle, author, titleStyle, authorStyle, titlePos, authorPos, imagePos, imageScale, template, redraw])
+  }, [title, subtitle, author, titleStyle, authorStyle, titlePos, authorPos, imagePos, imageScale, colorGradeId, template, redraw])
 
   // Redraw once web fonts finish loading
   useEffect(() => {
