@@ -4,37 +4,52 @@ import { useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import DescriptionPanel from '@/components/DescriptionPanel'
 import ControlPanel from '@/components/ControlPanel'
-import type { BookInfo, CoverConcept, TextStyle } from '@/lib/types'
+import type { BookInfo, CoverConcept, TextStyle, Position, Template } from '@/lib/types'
+import { TEMPLATES, CANVAS_W, CANVAS_H } from '@/lib/templates'
 
 const CanvasEditor = dynamic(() => import('@/components/CanvasEditor'), { ssr: false })
 
-const DEFAULT_TITLE_STYLE: TextStyle = {
-  fontFamily: 'Georgia',
-  fontSize: 38,
-  color: '#ffffff',
-}
-
-const DEFAULT_AUTHOR_STYLE: TextStyle = {
-  fontFamily: 'Georgia',
-  fontSize: 20,
-  color: '#cccccc',
-}
+const DEFAULT_TEMPLATE = TEMPLATES[0]
 
 export default function Home() {
   const [bookInfo, setBookInfo] = useState<BookInfo>({
-    title: '',
-    author: '',
-    genre: '',
-    blurb: '',
-    mood: '',
+    title: '', author: '', genre: '', blurb: '', mood: '',
   })
   const [concept, setConcept] = useState<CoverConcept | null>(null)
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [titleStyle, setTitleStyle] = useState<TextStyle>(DEFAULT_TITLE_STYLE)
-  const [authorStyle, setAuthorStyle] = useState<TextStyle>(DEFAULT_AUTHOR_STYLE)
+
+  // Typography — initialised from the default template
+  const [titleStyle, setTitleStyle] = useState<TextStyle>(DEFAULT_TEMPLATE.titleStyle)
+  const [authorStyle, setAuthorStyle] = useState<TextStyle>(DEFAULT_TEMPLATE.authorStyle)
+
+  // Text positions — draggable on canvas
+  const [titlePos, setTitlePos] = useState<Position>(DEFAULT_TEMPLATE.titlePos)
+  const [authorPos, setAuthorPos] = useState<Position>(DEFAULT_TEMPLATE.authorPos)
+
+  // Active template (controls overlay + decoration)
+  const [activeTemplate, setActiveTemplate] = useState<Template>(DEFAULT_TEMPLATE)
+
   const exportFnRef = useRef<(() => string | null) | null>(null)
+
+  // The image shown on canvas: prefer uploaded over generated
+  const imageUrl = uploadedImageUrl ?? generatedImageUrl
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleApplyTemplate = (t: Template) => {
+    setActiveTemplate(t)
+    setTitleStyle(t.titleStyle)
+    setAuthorStyle(t.authorStyle)
+    setTitlePos(t.titlePos)
+    setAuthorPos(t.authorPos)
+  }
+
+  const handleImageUpload = (url: string) => {
+    setUploadedImageUrl(url)
+  }
 
   const handleGenerate = async () => {
     if (!bookInfo.title || !bookInfo.genre) {
@@ -43,9 +58,10 @@ export default function Home() {
     }
     setError(null)
     setIsGenerating(true)
+    setUploadedImageUrl(null) // generating replaces any manual upload
 
     try {
-      // Step 1: Generate concept with OpenAI
+      // Step 1: concept via OpenAI
       const conceptRes = await fetch('/api/generate-concept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,7 +71,7 @@ export default function Home() {
       const conceptData: CoverConcept = await conceptRes.json()
       setConcept(conceptData)
 
-      // Apply AI-suggested typography
+      // Apply AI typography suggestions on top of current template
       setTitleStyle(s => ({
         ...s,
         fontFamily: conceptData.titleFont || s.fontFamily,
@@ -66,7 +82,7 @@ export default function Home() {
         color: conceptData.authorColor || s.color,
       }))
 
-      // Step 2: Generate image with fal.ai
+      // Step 2: image via fal.ai
       const imageRes = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,7 +90,7 @@ export default function Home() {
       })
       if (!imageRes.ok) throw new Error('Failed to generate cover image')
       const imageData = await imageRes.json()
-      setImageUrl(imageData.imageUrl)
+      setGeneratedImageUrl(imageData.imageUrl)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -103,6 +119,7 @@ export default function Home() {
           bookInfo={bookInfo}
           onChange={setBookInfo}
           onGenerate={handleGenerate}
+          onImageUpload={handleImageUpload}
           isGenerating={isGenerating}
           error={error}
         />
@@ -114,6 +131,11 @@ export default function Home() {
             author={bookInfo.author}
             titleStyle={titleStyle}
             authorStyle={authorStyle}
+            titlePos={titlePos}
+            authorPos={authorPos}
+            template={activeTemplate}
+            onTitlePosChange={setTitlePos}
+            onAuthorPosChange={setAuthorPos}
             isLoading={isGenerating}
             exportRef={exportFnRef}
           />
@@ -129,6 +151,8 @@ export default function Home() {
           concept={concept}
           onRegenerate={handleGenerate}
           isGenerating={isGenerating}
+          activeTemplateId={activeTemplate.id}
+          onApplyTemplate={handleApplyTemplate}
         />
       </div>
     </div>

@@ -6,6 +6,7 @@ interface Props {
   bookInfo: BookInfo
   onChange: (info: BookInfo) => void
   onGenerate: () => void
+  onImageUpload: (url: string) => void
   isGenerating: boolean
   error: string | null
 }
@@ -25,8 +26,16 @@ const MOODS = [
 const inputClass =
   'w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors'
 
-export default function DescriptionPanel({ bookInfo, onChange, onGenerate, isGenerating, error }: Props) {
+export default function DescriptionPanel({ bookInfo, onChange, onGenerate, onImageUpload, isGenerating, error }: Props) {
   const set = (key: keyof BookInfo, value: string) => onChange({ ...bookInfo, [key]: value })
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    onImageUpload(url)
+    e.target.value = '' // reset so same file can be re-selected
+  }
 
   return (
     <aside className="w-80 border-r border-zinc-800 flex flex-col bg-zinc-950 overflow-y-auto shrink-0">
@@ -98,7 +107,7 @@ export default function DescriptionPanel({ bookInfo, onChange, onGenerate, isGen
         )}
       </div>
 
-      <div className="p-5 border-t border-zinc-800">
+      <div className="p-5 border-t border-zinc-800 space-y-2">
         <button
           onClick={onGenerate}
           disabled={isGenerating}
@@ -114,6 +123,15 @@ export default function DescriptionPanel({ bookInfo, onChange, onGenerate, isGen
             </>
           ) : 'Generate Cover'}
         </button>
+
+        {/* Upload own image */}
+        <label className="w-full py-2 flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-200 text-sm rounded-md transition-colors cursor-pointer">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          Upload Image
+          <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        </label>
       </div>
     </aside>
   )

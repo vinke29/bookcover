@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import type { TextStyle } from '@/lib/types'
+import { useEffect, useRef, useCallback } from 'react'
+import type { TextStyle, Position, Template, OverlayStyle } from '@/lib/types'
+import { CANVAS_W, CANVAS_H } from '@/lib/templates'
 
 interface Props {
   imageUrl: string | null
@@ -9,209 +10,455 @@ interface Props {
   author: string
   titleStyle: TextStyle
   authorStyle: TextStyle
+  titlePos: Position
+  authorPos: Position
+  template: Template
+  onTitlePosChange: (pos: Position) => void
+  onAuthorPosChange: (pos: Position) => void
   isLoading: boolean
   exportRef: React.MutableRefObject<(() => string | null) | null>
 }
 
-const CANVAS_W = 400
-const CANVAS_H = 600
+// ─── Drawing helpers ──────────────────────────────────────────────────────────
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let current = ''
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current)
+      current = word
+    } else {
+      current = test
+    }
+  }
+  if (current) lines.push(current)
+  return lines
+}
+
+function drawLetterSpaced(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  anchor: number,
+  y: number,
+  spacing: number,
+  align: 'left' | 'center' | 'right',
+) {
+  let total = 0
+  for (const ch of text) total += ctx.measureText(ch).width + spacing
+  total -= spacing
+  let x = align === 'center' ? anchor - total / 2
+         : align === 'right'  ? anchor - total
+         : anchor
+  for (const ch of text) {
+    ctx.fillText(ch, x, y)
+    x += ctx.measureText(ch).width + spacing
+  }
+}
+
+function drawOverlay(ctx: CanvasRenderingContext2D, style: OverlayStyle, w: number, h: number) {
+  switch (style.type) {
+    case 'vignette': {
+      const g = ctx.createLinearGradient(0, 0, 0, h)
+      g.addColorStop(0,    `rgba(0,0,0,${style.topOpacity})`)
+      g.addColorStop(0.22, 'rgba(0,0,0,0)')
+      g.addColorStop(0.60, 'rgba(0,0,0,0)')
+      g.addColorStop(1,    `rgba(0,0,0,${style.bottomOpacity})`)
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+      break
+    }
+    case 'tint': {
+      ctx.fillStyle = `rgba(0,0,0,${style.opacity})`; ctx.fillRect(0, 0, w, h)
+      break
+    }
+    case 'band': {
+      const bandY = h * (1 - style.bandRatio)
+      const feather = ctx.createLinearGradient(0, bandY - 55, 0, bandY + 5)
+      feather.addColorStop(0, 'rgba(0,0,0,0)')
+      feather.addColorStop(1, `rgba(0,0,0,${style.opacity})`)
+      ctx.fillStyle = feather; ctx.fillRect(0, bandY - 55, w, 60)
+      ctx.fillStyle = `rgba(0,0,0,${style.opacity})`; ctx.fillRect(0, bandY + 5, w, h)
+      break
+    }
+    case 'solid-block': {
+      ctx.fillStyle = style.color
+      if (style.position === 'bottom') {
+        ctx.fillRect(0, h * (1 - style.heightRatio), w, h * style.heightRatio)
+      } else {
+        ctx.fillRect(0, 0, w, h * style.heightRatio)
+      }
+      break
+    }
+    case 'none': break
+  }
+}
+
+function drawCover(
+  canvas: HTMLCanvasElement,
+  bgImage: HTMLImageElement | null,
+  title: string,
+  author: string,
+  titleStyle: TextStyle,
+  authorStyle: TextStyle,
+  titlePos: Position,
+  authorPos: Position,
+  template: Template,
+  dragTarget: 'title' | 'author' | null,
+) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const W = CANVAS_W, H = CANVAS_H
+
+  // ── Background ─────────────────────────────────────────────────────────────
+  ctx.fillStyle = '#111118'
+  ctx.fillRect(0, 0, W, H)
+
+  if (bgImage) {
+    const scale = Math.max(W / bgImage.naturalWidth, H / bgImage.naturalHeight)
+    const w = bgImage.naturalWidth * scale, h = bgImage.naturalHeight * scale
+    ctx.drawImage(bgImage, (W - w) / 2, (H - h) / 2, w, h)
+  }
+
+  // ── Color tint (template-specific hue over the image) ──────────────────────
+  if (template.colorTint) {
+    ctx.fillStyle = template.colorTint
+    ctx.fillRect(0, 0, W, H)
+  }
+
+  // ── Overlay (vignette / tint / band / solid-block) ─────────────────────────
+  drawOverlay(ctx, template.overlayStyle, W, H)
+
+  // ── Border frame ───────────────────────────────────────────────────────────
+  if (template.border) {
+    const { padding: p, color, lineWidth } = template.border
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.strokeStyle = color
+    ctx.lineWidth = lineWidth
+    ctx.strokeRect(p, p, W - p * 2, H - p * 2)
+    ctx.restore()
+  }
+
+  const displayTitle = template.titleTransform === 'uppercase'
+    ? (title || 'YOUR BOOK TITLE').toUpperCase()
+    : (title || 'Your Book Title')
+
+  const PAD = 40
+  const maxW = W - PAD * 2
+
+  // Pre-compute title layout (needed for decorations below)
+  ctx.font = `bold ${titleStyle.fontSize}px ${titleStyle.fontFamily}, Georgia, serif`
+  const titleLines = wrapText(ctx, displayTitle, maxW)
+  const titleLineH = titleStyle.fontSize * 1.2
+  const titleBlockH = titleLines.length * titleLineH
+  const titleTop = titlePos.y - titleBlockH / 2
+
+  // ── Ornament above title (elegant template) ─────────────────────────────────
+  if (template.ornament) {
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.font = `14px Georgia, serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'
+    ctx.fillText('◆', W / 2, titleTop - 20)
+    ctx.restore()
+  }
+
+  // ── Accent lines flanking title (cinematic) ─────────────────────────────────
+  if (template.accentLines && titleLines.length > 0) {
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.font = `bold ${titleStyle.fontSize}px ${titleStyle.fontFamily}, Georgia, serif`
+    const firstW = ctx.measureText(titleLines[0]).width
+    const gap = 14
+    ctx.strokeStyle = template.accentLineColor ?? 'rgba(255,255,255,0.32)'
+    ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(PAD, titlePos.y); ctx.lineTo(W / 2 - firstW / 2 - gap, titlePos.y); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(W / 2 + firstW / 2 + gap, titlePos.y); ctx.lineTo(W - PAD, titlePos.y); ctx.stroke()
+    ctx.restore()
+  }
+
+  // ── Title text ──────────────────────────────────────────────────────────────
+  ctx.save()
+  ctx.textAlign = template.titleAlign
+  ctx.textBaseline = 'middle'
+  ctx.font = `bold ${titleStyle.fontSize}px ${titleStyle.fontFamily}, Georgia, serif`
+  if (!template.noShadow) {
+    ctx.shadowColor = 'rgba(0,0,0,0.95)'
+    ctx.shadowBlur = 20; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 3
+  }
+  ctx.fillStyle = titleStyle.color
+  titleLines.forEach((line, i) => {
+    ctx.fillText(line, titlePos.x, titleTop + i * titleLineH + titleLineH / 2)
+  })
+  ctx.restore()
+
+  // ── Accent bar below title (thriller) ────────────────────────────────────────
+  if (template.accentBar) {
+    const barY = titlePos.y + titleBlockH / 2 + 10
+    ctx.save()
+    ctx.shadowBlur = 0
+    ctx.fillStyle = template.accentBar.color
+    ctx.fillRect(W / 2 - 52, barY, 104, template.accentBar.height)
+    ctx.restore()
+  }
+
+  // ── Divider ─────────────────────────────────────────────────────────────────
+  if (template.showDivider) {
+    const divY = titlePos.y + titleBlockH / 2 + (authorPos.y - (titlePos.y + titleBlockH / 2)) * 0.45
+    const divColor = template.noShadow ? 'rgba(60,60,70,0.5)' : 'rgba(255,255,255,0.28)'
+    ctx.save()
+    ctx.shadowBlur = 0
+    if (template.dividerStyle === 'diamond') {
+      ctx.font = '10px Georgia, serif'
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillStyle = divColor
+      ctx.fillText('◆', W / 2, divY)
+    } else if (template.dividerStyle === 'dots') {
+      ctx.fillStyle = divColor
+      const gap = 8, n = 5, startX = W / 2 - (n - 1) * gap / 2
+      for (let i = 0; i < n; i++) {
+        ctx.beginPath(); ctx.arc(startX + i * gap, divY, 1.5, 0, Math.PI * 2); ctx.fill()
+      }
+    } else {
+      ctx.strokeStyle = divColor; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(W / 2 - 28, divY); ctx.lineTo(W / 2 + 28, divY); ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  // ── Author text ──────────────────────────────────────────────────────────────
+  ctx.save()
+  ctx.textAlign = template.authorAlign
+  ctx.textBaseline = 'middle'
+  ctx.font = `${authorStyle.fontSize}px ${authorStyle.fontFamily}, Georgia, serif`
+  if (!template.noShadow) {
+    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2
+  }
+  ctx.fillStyle = authorStyle.color
+  drawLetterSpaced(ctx, author || 'Author Name', authorPos.x, authorPos.y, 2.5, template.authorAlign)
+  ctx.restore()
+
+  // ── Drag selection indicator ─────────────────────────────────────────────────
+  if (dragTarget) {
+    ctx.save()
+    ctx.strokeStyle = 'rgba(99,102,241,0.7)'
+    ctx.lineWidth = 1
+    ctx.setLineDash([4, 3])
+    if (dragTarget === 'title') {
+      roundRect(ctx, titlePos.x - maxW / 2, titlePos.y - titleBlockH / 2 - 8, maxW, titleBlockH + 16, 3)
+    } else {
+      ctx.font = `${authorStyle.fontSize}px ${authorStyle.fontFamily}, Georgia, serif`
+      const aw = ctx.measureText(author || 'Author Name').width + 40
+      const ah = authorStyle.fontSize + 16
+      roundRect(ctx, authorPos.x - aw / 2, authorPos.y - ah / 2, aw, ah, 3)
+    }
+    ctx.stroke()
+    ctx.restore()
+  }
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number, r: number,
+) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CanvasEditor({
-  imageUrl,
-  title,
-  author,
-  titleStyle,
-  authorStyle,
-  isLoading,
-  exportRef,
+  imageUrl, title, author,
+  titleStyle, authorStyle,
+  titlePos, authorPos,
+  template,
+  onTitlePosChange, onAuthorPosChange,
+  isLoading, exportRef,
 }: Props) {
-  const canvasElRef = useRef<HTMLCanvasElement>(null)
-  const fabricRef = useRef<any>(null)
-  const titleObjRef = useRef<any>(null)
-  const authorObjRef = useRef<any>(null)
-  const overlayRef = useRef<any>(null)
+  const canvasRef   = useRef<HTMLCanvasElement>(null)
+  const bgImageRef  = useRef<HTMLImageElement | null>(null)
+  const dragRef     = useRef<{
+    obj: 'title' | 'author'
+    startX: number; startY: number
+    objStartX: number; objStartY: number
+  } | null>(null)
 
-  // Initialize canvas once
-  useEffect(() => {
-    if (!canvasElRef.current) return
-    let canvas: any
-    let disposed = false
+  // Mirror all props into refs so the stable `redraw` can always read latest
+  const titleRef       = useRef(title)
+  const authorRef      = useRef(author)
+  const titleStyleRef  = useRef(titleStyle)
+  const authorStyleRef = useRef(authorStyle)
+  const titlePosRef    = useRef(titlePos)
+  const authorPosRef   = useRef(authorPos)
+  const templateRef    = useRef(template)
+  const dragTargetRef  = useRef<'title' | 'author' | null>(null)
+  titleRef.current       = title
+  authorRef.current      = author
+  titleStyleRef.current  = titleStyle
+  authorStyleRef.current = authorStyle
+  titlePosRef.current    = titlePos
+  authorPosRef.current   = authorPos
+  templateRef.current    = template
 
-    import('fabric').then(({ Canvas, IText, Rect, Shadow }) => {
-      if (disposed || !canvasElRef.current) return
-
-      canvas = new Canvas(canvasElRef.current, {
-        width: CANVAS_W,
-        height: CANVAS_H,
-        selection: true,
-      })
-      fabricRef.current = canvas
-
-      // Dark placeholder background
-      const bg = new Rect({
-        left: 0,
-        top: 0,
-        width: CANVAS_W,
-        height: CANVAS_H,
-        fill: '#1a1a2e',
-        selectable: false,
-        evented: false,
-        hoverCursor: 'default',
-      })
-      canvas.add(bg)
-
-      // Semi-transparent gradient overlay at the bottom for text legibility
-      const overlay = new Rect({
-        left: 0,
-        top: CANVAS_H * 0.55,
-        width: CANVAS_W,
-        height: CANVAS_H * 0.45,
-        fill: 'rgba(0,0,0,0.55)',
-        selectable: false,
-        evented: false,
-        hoverCursor: 'default',
-      })
-      overlayRef.current = overlay
-      canvas.add(overlay)
-
-      const textShadow = new Shadow({ color: 'rgba(0,0,0,0.9)', blur: 12, offsetX: 1, offsetY: 2 })
-
-      // Title text
-      const titleText = new IText(title || 'Your Book Title', {
-        left: CANVAS_W / 2,
-        top: CANVAS_H * 0.76,
-        fontSize: 38,
-        fill: '#ffffff',
-        fontFamily: 'Georgia',
-        originX: 'center',
-        originY: 'center',
-        textAlign: 'center',
-        width: CANVAS_W - 40,
-        shadow: textShadow,
-        fontWeight: 'bold',
-      })
-      titleObjRef.current = titleText
-      canvas.add(titleText)
-
-      // Author text
-      const authorText = new IText(author || 'Author Name', {
-        left: CANVAS_W / 2,
-        top: CANVAS_H * 0.9,
-        fontSize: 20,
-        fill: '#cccccc',
-        fontFamily: 'Georgia',
-        originX: 'center',
-        originY: 'center',
-        textAlign: 'center',
-        width: CANVAS_W - 40,
-        shadow: new Shadow({ color: 'rgba(0,0,0,0.7)', blur: 8, offsetX: 1, offsetY: 1 }),
-      })
-      authorObjRef.current = authorText
-      canvas.add(authorText)
-
-      canvas.renderAll()
-
-      exportRef.current = () =>
-        canvas.toDataURL({ format: 'png', multiplier: 2 })
-    })
-
-    return () => {
-      disposed = true
-      canvas?.dispose()
-      fabricRef.current = null
-      titleObjRef.current = null
-      authorObjRef.current = null
-    }
+  const redraw = useCallback(() => {
+    if (!canvasRef.current) return
+    drawCover(
+      canvasRef.current,
+      bgImageRef.current,
+      titleRef.current,
+      authorRef.current,
+      titleStyleRef.current,
+      authorStyleRef.current,
+      titlePosRef.current,
+      authorPosRef.current,
+      templateRef.current,
+      dragTargetRef.current,
+    )
   }, [])
 
-  // Update background image
+  // Export hook
   useEffect(() => {
-    if (!fabricRef.current || !imageUrl) return
-    import('fabric').then(({ FabricImage }) => {
-      FabricImage.fromURL(imageUrl, { crossOrigin: 'anonymous' }).then((img: any) => {
-        const canvas = fabricRef.current
-        if (!canvas) return
-        const scaleX = CANVAS_W / img.width!
-        const scaleY = CANVAS_H / img.height!
-        const scale = Math.max(scaleX, scaleY)
-        img.set({
-          scaleX: scale,
-          scaleY: scale,
-          left: CANVAS_W / 2,
-          top: CANVAS_H / 2,
-          originX: 'center',
-          originY: 'center',
-          selectable: false,
-          evented: false,
-          hoverCursor: 'default',
-        })
-        canvas.backgroundImage = img
+    exportRef.current = () => canvasRef.current?.toDataURL('image/png') ?? null
+  }, [exportRef, redraw])
 
-        // Bring overlay and text to front
-        if (overlayRef.current) canvas.bringObjectToFront(overlayRef.current)
-        if (titleObjRef.current) canvas.bringObjectToFront(titleObjRef.current)
-        if (authorObjRef.current) canvas.bringObjectToFront(authorObjRef.current)
-
-        canvas.renderAll()
-      })
-    })
-  }, [imageUrl])
-
-  // Update title text content
+  // Redraw on any visual prop change
   useEffect(() => {
-    if (!titleObjRef.current || !fabricRef.current) return
-    titleObjRef.current.set({ text: title || 'Your Book Title' })
-    fabricRef.current.renderAll()
-  }, [title])
+    redraw()
+  }, [title, author, titleStyle, authorStyle, titlePos, authorPos, template, redraw])
 
-  // Update author text content
+  // Load background image
   useEffect(() => {
-    if (!authorObjRef.current || !fabricRef.current) return
-    authorObjRef.current.set({ text: author || 'Author Name' })
-    fabricRef.current.renderAll()
-  }, [author])
+    if (!imageUrl) return
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => { bgImageRef.current = img; redraw() }
+    img.onerror = () => {
+      const img2 = new Image()
+      img2.onload = () => { bgImageRef.current = img2; redraw() }
+      img2.src = imageUrl
+    }
+    img.src = imageUrl
+  }, [imageUrl, redraw])
 
-  // Update title style
-  useEffect(() => {
-    if (!titleObjRef.current || !fabricRef.current) return
-    titleObjRef.current.set({
-      fontFamily: titleStyle.fontFamily,
-      fontSize: titleStyle.fontSize,
-      fill: titleStyle.color,
-    })
-    fabricRef.current.renderAll()
-  }, [titleStyle])
+  // ─── Drag ──────────────────────────────────────────────────────────────────
 
-  // Update author style
-  useEffect(() => {
-    if (!authorObjRef.current || !fabricRef.current) return
-    authorObjRef.current.set({
-      fontFamily: authorStyle.fontFamily,
-      fontSize: authorStyle.fontSize,
-      fill: authorStyle.color,
-    })
-    fabricRef.current.renderAll()
-  }, [authorStyle])
+  function getCoords(e: React.MouseEvent<HTMLCanvasElement>) {
+    const rect = canvasRef.current!.getBoundingClientRect()
+    const scaleX = CANVAS_W / rect.width
+    const scaleY = CANVAS_H / rect.height
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    }
+  }
+
+  function hitTitle(x: number, y: number) {
+    const tp = titlePosRef.current
+    const fs = titleStyleRef.current.fontSize
+    return Math.abs(x - tp.x) < (CANVAS_W - 40) / 2 && Math.abs(y - tp.y) < fs * 1.5
+  }
+
+  function hitAuthor(x: number, y: number) {
+    const ap = authorPosRef.current
+    const fs = authorStyleRef.current.fontSize
+    return Math.abs(x - ap.x) < 160 && Math.abs(y - ap.y) < fs * 1.5
+  }
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCoords(e)
+    if (hitTitle(x, y)) {
+      dragRef.current = { obj: 'title', startX: x, startY: y, objStartX: titlePosRef.current.x, objStartY: titlePosRef.current.y }
+      dragTargetRef.current = 'title'
+    } else if (hitAuthor(x, y)) {
+      dragRef.current = { obj: 'author', startX: x, startY: y, objStartX: authorPosRef.current.x, objStartY: authorPosRef.current.y }
+      dragTargetRef.current = 'author'
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCoords(e)
+
+    if (!dragRef.current) {
+      // Cursor feedback
+      canvasRef.current!.style.cursor =
+        hitTitle(x, y) || hitAuthor(x, y) ? 'grab' : 'default'
+      return
+    }
+
+    canvasRef.current!.style.cursor = 'grabbing'
+    const dx = x - dragRef.current.startX
+    const dy = y - dragRef.current.startY
+    const newPos = {
+      x: dragRef.current.objStartX + dx,
+      y: dragRef.current.objStartY + dy,
+    }
+    if (dragRef.current.obj === 'title') {
+      titlePosRef.current = newPos
+    } else {
+      authorPosRef.current = newPos
+    }
+    redraw()
+  }
+
+  const handleMouseUp = () => {
+    if (!dragRef.current) return
+    if (dragRef.current.obj === 'title') onTitlePosChange(titlePosRef.current)
+    else onAuthorPosChange(authorPosRef.current)
+    dragRef.current = null
+    dragTargetRef.current = null
+    redraw()
+  }
+
+  const handleMouseLeave = () => {
+    if (dragRef.current) handleMouseUp()
+    if (canvasRef.current) canvasRef.current.style.cursor = 'default'
+  }
 
   return (
-    <div className="relative shadow-2xl rounded-sm overflow-hidden">
-      {isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 gap-3">
-          <svg className="animate-spin h-8 w-8 text-indigo-400" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
-          <span className="text-sm text-zinc-300">Crafting your cover...</span>
-        </div>
-      )}
-      {!imageUrl && !isLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 gap-2">
-          <p className="text-xs text-zinc-500 text-center px-8">
-            Fill in your book details and click <span className="text-zinc-400">Generate Cover</span>
-          </p>
-        </div>
-      )}
-      <canvas ref={canvasElRef} />
+    <div className="relative shadow-2xl" style={{ width: CANVAS_W, height: CANVAS_H }}>
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_W}
+        height={CANVAS_H}
+        className="block"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+      />
+
+      {/* Loading overlay */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 gap-3 transition-opacity duration-200"
+        style={{ opacity: isLoading ? 1 : 0, pointerEvents: isLoading ? 'auto' : 'none' }}
+      >
+        <svg className="animate-spin h-8 w-8 text-indigo-400" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
+        <span className="text-sm text-zinc-300">Crafting your cover…</span>
+      </div>
+
+      {/* Empty state hint */}
+      <div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 transition-opacity duration-200"
+        style={{ opacity: !imageUrl && !isLoading ? 1 : 0 }}
+      >
+        <p className="text-xs text-zinc-500 text-center px-10 leading-relaxed">
+          Fill in your book details and click{' '}
+          <span className="text-zinc-400">Generate Cover</span>
+          <br />or upload your own image
+        </p>
+      </div>
     </div>
   )
 }
