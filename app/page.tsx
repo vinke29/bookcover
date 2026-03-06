@@ -32,6 +32,10 @@ export default function Home() {
   // Active template (controls overlay + decoration)
   const [activeTemplate, setActiveTemplate] = useState<Template>(DEFAULT_TEMPLATE)
 
+  // Image pan/zoom
+  const [imagePos, setImagePos] = useState<Position>({ x: 0, y: 0 })
+  const [imageScale, setImageScale] = useState(1)
+
   const exportFnRef = useRef<(() => string | null) | null>(null)
 
   // The image shown on canvas: prefer uploaded over generated
@@ -49,6 +53,8 @@ export default function Home() {
 
   const handleImageUpload = (url: string) => {
     setUploadedImageUrl(url)
+    setImagePos({ x: 0, y: 0 })
+    setImageScale(1)
   }
 
   const handleGenerate = async () => {
@@ -59,6 +65,8 @@ export default function Home() {
     setError(null)
     setIsGenerating(true)
     setUploadedImageUrl(null) // generating replaces any manual upload
+    setImagePos({ x: 0, y: 0 })
+    setImageScale(1)
 
     try {
       // Step 1: concept via OpenAI
@@ -133,9 +141,12 @@ export default function Home() {
             authorStyle={authorStyle}
             titlePos={titlePos}
             authorPos={authorPos}
+            imagePos={imagePos}
+            imageScale={imageScale}
             template={activeTemplate}
             onTitlePosChange={setTitlePos}
             onAuthorPosChange={setAuthorPos}
+            onImagePosChange={setImagePos}
             isLoading={isGenerating}
             exportRef={exportFnRef}
           />
@@ -153,6 +164,9 @@ export default function Home() {
           isGenerating={isGenerating}
           activeTemplateId={activeTemplate.id}
           onApplyTemplate={handleApplyTemplate}
+          imageScale={imageScale}
+          onImageScaleChange={setImageScale}
+          hasImage={!!imageUrl}
         />
       </div>
     </div>

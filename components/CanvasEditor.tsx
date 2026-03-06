@@ -12,9 +12,12 @@ interface Props {
   authorStyle: TextStyle
   titlePos: Position
   authorPos: Position
+  imagePos: Position
+  imageScale: number
   template: Template
   onTitlePosChange: (pos: Position) => void
   onAuthorPosChange: (pos: Position) => void
+  onImagePosChange: (pos: Position) => void
   isLoading: boolean
   exportRef: React.MutableRefObject<(() => string | null) | null>
 }
@@ -104,6 +107,8 @@ function drawCover(
   authorStyle: TextStyle,
   titlePos: Position,
   authorPos: Position,
+  imagePos: Position,
+  imageScale: number,
   template: Template,
   dragTarget: 'title' | 'author' | null,
 ) {
@@ -116,9 +121,10 @@ function drawCover(
   ctx.fillRect(0, 0, W, H)
 
   if (bgImage) {
-    const scale = Math.max(W / bgImage.naturalWidth, H / bgImage.naturalHeight)
-    const w = bgImage.naturalWidth * scale, h = bgImage.naturalHeight * scale
-    ctx.drawImage(bgImage, (W - w) / 2, (H - h) / 2, w, h)
+    const baseScale = Math.max(W / bgImage.naturalWidth, H / bgImage.naturalHeight)
+    const s = baseScale * imageScale
+    const w = bgImage.naturalWidth * s, h = bgImage.naturalHeight * s
+    ctx.drawImage(bgImage, (W - w) / 2 + imagePos.x, (H - h) / 2 + imagePos.y, w, h)
   }
 
   // ── Color tint (template-specific hue over the image) ──────────────────────
@@ -280,14 +286,15 @@ export default function CanvasEditor({
   imageUrl, title, author,
   titleStyle, authorStyle,
   titlePos, authorPos,
+  imagePos, imageScale,
   template,
-  onTitlePosChange, onAuthorPosChange,
+  onTitlePosChange, onAuthorPosChange, onImagePosChange,
   isLoading, exportRef,
 }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null)
   const bgImageRef  = useRef<HTMLImageElement | null>(null)
   const dragRef     = useRef<{
-    obj: 'title' | 'author'
+    obj: 'title' | 'author' | 'image'
     startX: number; startY: number
     objStartX: number; objStartY: number
   } | null>(null)
@@ -299,6 +306,8 @@ export default function CanvasEditor({
   const authorStyleRef = useRef(authorStyle)
   const titlePosRef    = useRef(titlePos)
   const authorPosRef   = useRef(authorPos)
+  const imagePosRef    = useRef(imagePos)
+  const imageScaleRef  = useRef(imageScale)
   const templateRef    = useRef(template)
   const dragTargetRef  = useRef<'title' | 'author' | null>(null)
   titleRef.current       = title
@@ -307,6 +316,8 @@ export default function CanvasEditor({
   authorStyleRef.current = authorStyle
   titlePosRef.current    = titlePos
   authorPosRef.current   = authorPos
+  imagePosRef.current    = imagePos
+  imageScaleRef.current  = imageScale
   templateRef.current    = template
 
   const redraw = useCallback(() => {
@@ -320,6 +331,8 @@ export default function CanvasEditor({
       authorStyleRef.current,
       titlePosRef.current,
       authorPosRef.current,
+      imagePosRef.current,
+      imageScaleRef.current,
       templateRef.current,
       dragTargetRef.current,
     )
@@ -333,7 +346,7 @@ export default function CanvasEditor({
   // Redraw on any visual prop change
   useEffect(() => {
     redraw()
-  }, [title, author, titleStyle, authorStyle, titlePos, authorPos, template, redraw])
+  }, [title, author, titleStyle, authorStyle, titlePos, authorPos, imagePos, imageScale, template, redraw])
 
   // Load background image
   useEffect(() => {
@@ -381,6 +394,8 @@ export default function CanvasEditor({
     } else if (hitAuthor(x, y)) {
       dragRef.current = { obj: 'author', startX: x, startY: y, objStartX: authorPosRef.current.x, objStartY: authorPosRef.current.y }
       dragTargetRef.current = 'author'
+    } else if (bgImageRef.current) {
+      dragRef.current = { obj: 'image', startX: x, startY: y, objStartX: imagePosRef.current.x, objStartY: imagePosRef.current.y }
     }
   }
 
@@ -390,7 +405,9 @@ export default function CanvasEditor({
     if (!dragRef.current) {
       // Cursor feedback
       canvasRef.current!.style.cursor =
-        hitTitle(x, y) || hitAuthor(x, y) ? 'grab' : 'default'
+        hitTitle(x, y) || hitAuthor(x, y) ? 'grab'
+        : bgImageRef.current ? 'move'
+        : 'default'
       return
     }
 
@@ -403,8 +420,10 @@ export default function CanvasEditor({
     }
     if (dragRef.current.obj === 'title') {
       titlePosRef.current = newPos
-    } else {
+    } else if (dragRef.current.obj === 'author') {
       authorPosRef.current = newPos
+    } else {
+      imagePosRef.current = newPos
     }
     redraw()
   }
@@ -412,7 +431,8 @@ export default function CanvasEditor({
   const handleMouseUp = () => {
     if (!dragRef.current) return
     if (dragRef.current.obj === 'title') onTitlePosChange(titlePosRef.current)
-    else onAuthorPosChange(authorPosRef.current)
+    else if (dragRef.current.obj === 'author') onAuthorPosChange(authorPosRef.current)
+    else onImagePosChange(imagePosRef.current)
     dragRef.current = null
     dragTargetRef.current = null
     redraw()

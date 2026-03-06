@@ -15,6 +15,9 @@ interface Props {
   isGenerating: boolean
   activeTemplateId: string
   onApplyTemplate: (t: Template) => void
+  imageScale: number
+  onImageScaleChange: (s: number) => void
+  hasImage: boolean
 }
 
 const FONTS = [
@@ -147,6 +150,7 @@ export default function ControlPanel({
   onExport, canExport,
   concept, onRegenerate, isGenerating,
   activeTemplateId, onApplyTemplate,
+  imageScale, onImageScaleChange, hasImage,
 }: Props) {
   return (
     <aside className="w-72 border-l border-zinc-800 flex flex-col bg-zinc-950 overflow-y-auto shrink-0">
@@ -166,6 +170,18 @@ export default function ControlPanel({
             ))}
           </div>
         </div>
+
+        {/* ── Image ─────────────────────────────────────────── */}
+        {hasImage && (
+          <div className="border-t border-zinc-800 pt-4 space-y-2">
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Image</p>
+            <label className="text-xs text-zinc-500 block">Zoom — {Math.round(imageScale * 100)}%</label>
+            <input type="range" min={50} max={300} step={5} value={Math.round(imageScale * 100)}
+              onChange={e => onImageScaleChange(Number(e.target.value) / 100)}
+              className="w-full accent-indigo-500" />
+            <p className="text-xs text-zinc-600">Drag the canvas to reposition</p>
+          </div>
+        )}
 
         {/* ── Typography ────────────────────────────────────── */}
         <div className="border-t border-zinc-800 pt-4">
