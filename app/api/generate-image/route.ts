@@ -3,43 +3,47 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const { prompt } = await req.json()
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = process.env.FAL_KEY
 
     if (!apiKey) {
-      return NextResponse.json({ error: 'GEMINI_API_KEY not set' }, { status: 500 })
+      return NextResponse.json({ error: 'FAL_KEY not set' }, { status: 500 })
     }
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseModalities: ['IMAGE'] },
-        }),
-      }
-    )
+    const res = await fetch('https://fal.run/fal-ai/flux/schnell', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Key ${apiKey}`,
+      },
+      body: JSON.stringify({
+        prompt,
+        image_size: { width: 768, height: 1024 },
+        num_images: 1,
+        num_inference_steps: 4,
+      }),
+    })
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      const detail = (err as any)?.error?.message ?? res.statusText
-      console.error('Gemini image error:', res.status, detail)
+      const detail = (err as any)?.detail ?? (err as any)?.message ?? res.statusText
+      console.error('fal.ai error:', res.status, detail)
       return NextResponse.json({ error: `Image generation failed: ${detail}` }, { status: 500 })
     }
 
     const data = await res.json()
-    const parts = data.candidates?.[0]?.content?.parts ?? []
-    const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'))
+    const imageUrl = data.images?.[0]?.url
 
-    if (!imagePart) {
-      throw new Error('No image data in Gemini response')
+    if (!imageUrl) {
+      throw new Error('No image URL in fal.ai response')
     }
 
-    const { mimeType, data: b64 } = imagePart.inlineData
-    const imageUrl = `data:${mimeType};base64,${b64}`
+    // Fetch and convert to base64 to avoid CORS issues on the client
+    const imgRes = await fetch(imageUrl)
+    const buffer = await imgRes.arrayBuffer()
+    const base64 = Buffer.from(buffer).toString('base64')
+    const mimeType = imgRes.headers.get('content-type') ?? 'image/jpeg'
 
-    return NextResponse.json({ imageUrl })
+    return NextResponse.json({ imageUrl: `data:${mimeType};base64,${base64}`, cdnUrl: imageUrl })
   } catch (error: any) {
     console.error('generate-image error:', error.message)
     return NextResponse.json({ error: error.message ?? 'Failed to generate image' }, { status: 500 })

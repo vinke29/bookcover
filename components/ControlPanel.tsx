@@ -18,6 +18,9 @@ interface Props {
   imageScale: number
   onImageScaleChange: (s: number) => void
   hasImage: boolean
+  onEnableDepth: () => void
+  isRemovingBg: boolean
+  hasDepth: boolean
 }
 
 const FONTS = [
@@ -170,6 +173,7 @@ export default function ControlPanel({
   concept, onRegenerate, isGenerating,
   activeTemplateId, onApplyTemplate,
   imageScale, onImageScaleChange, hasImage,
+  onEnableDepth, isRemovingBg, hasDepth,
 }: Props) {
   return (
     <aside className="w-72 border-l border-zinc-800 flex flex-col bg-zinc-950 overflow-y-auto shrink-0">
@@ -242,6 +246,23 @@ export default function ControlPanel({
 
       {/* ── Actions ───────────────────────────────────────── */}
       <div className="p-5 border-t border-zinc-800 space-y-2">
+        {hasImage && (
+          <button
+            onClick={onEnableDepth}
+            disabled={isRemovingBg || hasDepth}
+            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-100 text-sm rounded-md transition-colors flex items-center justify-center gap-2"
+          >
+            {isRemovingBg ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Extracting subject…
+              </>
+            ) : hasDepth ? '✓ Depth effect on' : '✦ Enable depth effect'}
+          </button>
+        )}
         <button
           onClick={onRegenerate}
           disabled={isGenerating}

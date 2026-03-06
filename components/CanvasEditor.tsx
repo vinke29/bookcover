@@ -6,6 +6,7 @@ import { CANVAS_W, CANVAS_H } from '@/lib/templates'
 
 interface Props {
   imageUrl: string | null
+  fgImageUrl: string | null
   title: string
   subtitle: string
   author: string
@@ -64,10 +65,13 @@ function drawLetterSpaced(
   let x = align === 'center' ? anchor - total / 2
          : align === 'right'  ? anchor - total
          : anchor
+  const savedAlign = ctx.textAlign
+  ctx.textAlign = 'left' // position each glyph manually; override ctx alignment
   for (const ch of text) {
     ctx.fillText(ch, x, y)
     x += ctx.measureText(ch).width + spacing
   }
+  ctx.textAlign = savedAlign
 }
 
 function drawOverlay(ctx: CanvasRenderingContext2D, style: OverlayStyle, w: number, h: number) {
@@ -110,6 +114,7 @@ function drawOverlay(ctx: CanvasRenderingContext2D, style: OverlayStyle, w: numb
 function drawCover(
   canvas: HTMLCanvasElement,
   bgImage: HTMLImageElement | null,
+  fgImage: HTMLImageElement | null,
   title: string,
   subtitle: string,
   author: string,
@@ -235,8 +240,10 @@ function drawCover(
   ctx.restore()
 
   // ── Subtitle ─────────────────────────────────────────────────────────────────
+  const subtitleSize = subtitle ? Math.max(13, Math.round(titleStyle.fontSize * 0.32)) : 0
+  const subtitleOffset = subtitle ? subtitleSize + 14 : 0 // space subtitle takes below title block
+
   if (subtitle) {
-    const subtitleSize = Math.max(13, Math.round(titleStyle.fontSize * 0.32))
     ctx.save()
     ctx.textAlign = template.titleAlign
     ctx.textBaseline = 'middle'
@@ -251,6 +258,9 @@ function drawCover(
     ctx.restore()
   }
 
+  // Author is pushed down by the subtitle height so they never overlap
+  const effectiveAuthorY = authorPos.y + subtitleOffset
+
   // ── Accent bar below title ────────────────────────────────────────────────────
   if (template.accentBar) {
     const barY = titlePos.y + titleBlockH / 2 + 10
@@ -263,7 +273,7 @@ function drawCover(
 
   // ── Divider ─────────────────────────────────────────────────────────────────
   if (template.showDivider) {
-    const divY = titlePos.y + titleBlockH / 2 + (authorPos.y - (titlePos.y + titleBlockH / 2)) * 0.45
+    const divY = titlePos.y + titleBlockH / 2 + (effectiveAuthorY - (titlePos.y + titleBlockH / 2)) * 0.45
     const divColor = template.noShadow ? 'rgba(60,60,70,0.5)' : 'rgba(255,255,255,0.28)'
     ctx.save()
     ctx.shadowBlur = 0
@@ -296,14 +306,14 @@ function drawCover(
     ctx.lineWidth = authorStyle.strokeWidth * 2
     ctx.lineJoin = 'round'
     ctx.shadowColor = 'transparent'
-    ctx.strokeText(author || 'Author Name', authorPos.x, authorPos.y)
+    ctx.strokeText(author || 'Author Name', authorPos.x, effectiveAuthorY)
   }
 
   if (!template.noShadow) {
     ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2
   }
   ctx.fillStyle = authorStyle.color
-  drawLetterSpaced(ctx, author || 'Author Name', authorPos.x, authorPos.y, 2.5, template.authorAlign)
+  drawLetterSpaced(ctx, author || 'Author Name', authorPos.x, effectiveAuthorY, 1, template.authorAlign)
   ctx.restore()
 
   // ── Drag selection indicator ─────────────────────────────────────────────────
@@ -318,10 +328,18 @@ function drawCover(
       ctx.font = `${authorStyle.fontSize}px ${fontStack(authorStyle.fontFamily)}`
       const aw = ctx.measureText(author || 'Author Name').width + 40
       const ah = authorStyle.fontSize + 16
-      roundRect(ctx, authorPos.x - aw / 2, authorPos.y - ah / 2, aw, ah, 3)
+      roundRect(ctx, authorPos.x - aw / 2, effectiveAuthorY - ah / 2, aw, ah, 3)
     }
     ctx.stroke()
     ctx.restore()
+  }
+
+  // ── Foreground subject (drawn last — appears in front of text) ───────────────
+  if (fgImage) {
+    const baseScale = Math.max(W / fgImage.naturalWidth, H / fgImage.naturalHeight)
+    const s = baseScale * imageScale
+    const w = fgImage.naturalWidth * s, h = fgImage.naturalHeight * s
+    ctx.drawImage(fgImage, (W - w) / 2 + imagePos.x, (H - h) / 2 + imagePos.y, w, h)
   }
 }
 
@@ -341,7 +359,7 @@ function roundRect(
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CanvasEditor({
-  imageUrl, title, subtitle, author,
+  imageUrl, fgImageUrl, title, subtitle, author,
   titleStyle, authorStyle,
   titlePos, authorPos,
   imagePos, imageScale,
@@ -351,6 +369,7 @@ export default function CanvasEditor({
 }: Props) {
   const canvasRef   = useRef<HTMLCanvasElement>(null)
   const bgImageRef  = useRef<HTMLImageElement | null>(null)
+  const fgImageRef  = useRef<HTMLImageElement | null>(null)
   const dragRef     = useRef<{
     obj: 'title' | 'author' | 'image'
     startX: number; startY: number
@@ -384,6 +403,7 @@ export default function CanvasEditor({
     drawCover(
       canvasRef.current,
       bgImageRef.current,
+      fgImageRef.current,
       titleRef.current,
       subtitleRef.current,
       authorRef.current,
@@ -423,6 +443,13 @@ export default function CanvasEditor({
     }
     img.src = imageUrl
   }, [imageUrl, redraw])
+
+  useEffect(() => {
+    if (!fgImageUrl) { fgImageRef.current = null; redraw(); return }
+    const img = new Image()
+    img.onload = () => { fgImageRef.current = img; redraw() }
+    img.src = fgImageUrl
+  }, [fgImageUrl, redraw])
 
   // ─── Drag ──────────────────────────────────────────────────────────────────
 
