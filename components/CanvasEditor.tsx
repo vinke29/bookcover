@@ -7,6 +7,7 @@ import { CANVAS_W, CANVAS_H } from '@/lib/templates'
 interface Props {
   imageUrl: string | null
   title: string
+  subtitle: string
   author: string
   titleStyle: TextStyle
   authorStyle: TextStyle
@@ -22,7 +23,15 @@ interface Props {
   exportRef: React.MutableRefObject<(() => string | null) | null>
 }
 
-// ─── Drawing helpers ──────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const SANS = new Set(['Helvetica', 'Arial', 'Impact', 'Trebuchet MS', 'Bebas Neue', 'Oswald', 'Montserrat'])
+const MONO = new Set(['Courier New'])
+
+function fontStack(family: string): string {
+  const fb = MONO.has(family) ? 'monospace' : SANS.has(family) ? 'sans-serif' : 'serif'
+  return `"${family}", ${fb}`
+}
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(' ')
@@ -102,6 +111,7 @@ function drawCover(
   canvas: HTMLCanvasElement,
   bgImage: HTMLImageElement | null,
   title: string,
+  subtitle: string,
   author: string,
   titleStyle: TextStyle,
   authorStyle: TextStyle,
@@ -127,13 +137,13 @@ function drawCover(
     ctx.drawImage(bgImage, (W - w) / 2 + imagePos.x, (H - h) / 2 + imagePos.y, w, h)
   }
 
-  // ── Color tint (template-specific hue over the image) ──────────────────────
+  // ── Color tint ─────────────────────────────────────────────────────────────
   if (template.colorTint) {
     ctx.fillStyle = template.colorTint
     ctx.fillRect(0, 0, W, H)
   }
 
-  // ── Overlay (vignette / tint / band / solid-block) ─────────────────────────
+  // ── Overlay ────────────────────────────────────────────────────────────────
   drawOverlay(ctx, template.overlayStyle, W, H)
 
   // ── Border frame ───────────────────────────────────────────────────────────
@@ -154,14 +164,24 @@ function drawCover(
   const PAD = 40
   const maxW = W - PAD * 2
 
-  // Pre-compute title layout (needed for decorations below)
-  ctx.font = `bold ${titleStyle.fontSize}px ${titleStyle.fontFamily}, Georgia, serif`
+  // Pre-compute title layout
+  ctx.font = `bold ${titleStyle.fontSize}px ${fontStack(titleStyle.fontFamily)}`
   const titleLines = wrapText(ctx, displayTitle, maxW)
   const titleLineH = titleStyle.fontSize * 1.2
   const titleBlockH = titleLines.length * titleLineH
   const titleTop = titlePos.y - titleBlockH / 2
 
-  // ── Ornament above title (elegant template) ─────────────────────────────────
+  // ── Text backdrop ──────────────────────────────────────────────────────────
+  if (template.textBackdrop) {
+    const pad = template.textBackdrop.padding
+    const subtitleH = subtitle ? Math.round(titleStyle.fontSize * 0.32) + pad + 6 : 0
+    ctx.save()
+    ctx.fillStyle = `rgba(0,0,0,${template.textBackdrop.opacity})`
+    ctx.fillRect(0, titleTop - pad, W, titleBlockH + pad * 2 + subtitleH)
+    ctx.restore()
+  }
+
+  // ── Ornament above title ────────────────────────────────────────────────────
   if (template.ornament) {
     ctx.save()
     ctx.shadowBlur = 0
@@ -173,11 +193,11 @@ function drawCover(
     ctx.restore()
   }
 
-  // ── Accent lines flanking title (cinematic) ─────────────────────────────────
+  // ── Accent lines flanking title ─────────────────────────────────────────────
   if (template.accentLines && titleLines.length > 0) {
     ctx.save()
     ctx.shadowBlur = 0
-    ctx.font = `bold ${titleStyle.fontSize}px ${titleStyle.fontFamily}, Georgia, serif`
+    ctx.font = `bold ${titleStyle.fontSize}px ${fontStack(titleStyle.fontFamily)}`
     const firstW = ctx.measureText(titleLines[0]).width
     const gap = 14
     ctx.strokeStyle = template.accentLineColor ?? 'rgba(255,255,255,0.32)'
@@ -191,7 +211,19 @@ function drawCover(
   ctx.save()
   ctx.textAlign = template.titleAlign
   ctx.textBaseline = 'middle'
-  ctx.font = `bold ${titleStyle.fontSize}px ${titleStyle.fontFamily}, Georgia, serif`
+  ctx.font = `bold ${titleStyle.fontSize}px ${fontStack(titleStyle.fontFamily)}`
+
+  // Stroke (outline) — drawn first so fill renders on top
+  if (titleStyle.strokeWidth && titleStyle.strokeWidth > 0) {
+    ctx.strokeStyle = titleStyle.strokeColor ?? '#000000'
+    ctx.lineWidth = titleStyle.strokeWidth * 2
+    ctx.lineJoin = 'round'
+    ctx.shadowColor = 'transparent'
+    titleLines.forEach((line, i) => {
+      ctx.strokeText(line, titlePos.x, titleTop + i * titleLineH + titleLineH / 2)
+    })
+  }
+
   if (!template.noShadow) {
     ctx.shadowColor = 'rgba(0,0,0,0.95)'
     ctx.shadowBlur = 20; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 3
@@ -202,7 +234,24 @@ function drawCover(
   })
   ctx.restore()
 
-  // ── Accent bar below title (thriller) ────────────────────────────────────────
+  // ── Subtitle ─────────────────────────────────────────────────────────────────
+  if (subtitle) {
+    const subtitleSize = Math.max(13, Math.round(titleStyle.fontSize * 0.32))
+    ctx.save()
+    ctx.textAlign = template.titleAlign
+    ctx.textBaseline = 'middle'
+    ctx.font = `italic ${subtitleSize}px ${fontStack(titleStyle.fontFamily)}`
+    ctx.fillStyle = titleStyle.color
+    ctx.globalAlpha = 0.60
+    if (!template.noShadow) {
+      ctx.shadowColor = 'rgba(0,0,0,0.9)'
+      ctx.shadowBlur = 10
+    }
+    ctx.fillText(subtitle, titlePos.x, titleTop + titleBlockH + subtitleSize + 6)
+    ctx.restore()
+  }
+
+  // ── Accent bar below title ────────────────────────────────────────────────────
   if (template.accentBar) {
     const barY = titlePos.y + titleBlockH / 2 + 10
     ctx.save()
@@ -240,7 +289,16 @@ function drawCover(
   ctx.save()
   ctx.textAlign = template.authorAlign
   ctx.textBaseline = 'middle'
-  ctx.font = `${authorStyle.fontSize}px ${authorStyle.fontFamily}, Georgia, serif`
+  ctx.font = `${authorStyle.fontSize}px ${fontStack(authorStyle.fontFamily)}`
+
+  if (authorStyle.strokeWidth && authorStyle.strokeWidth > 0) {
+    ctx.strokeStyle = authorStyle.strokeColor ?? '#000000'
+    ctx.lineWidth = authorStyle.strokeWidth * 2
+    ctx.lineJoin = 'round'
+    ctx.shadowColor = 'transparent'
+    ctx.strokeText(author || 'Author Name', authorPos.x, authorPos.y)
+  }
+
   if (!template.noShadow) {
     ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2
   }
@@ -257,7 +315,7 @@ function drawCover(
     if (dragTarget === 'title') {
       roundRect(ctx, titlePos.x - maxW / 2, titlePos.y - titleBlockH / 2 - 8, maxW, titleBlockH + 16, 3)
     } else {
-      ctx.font = `${authorStyle.fontSize}px ${authorStyle.fontFamily}, Georgia, serif`
+      ctx.font = `${authorStyle.fontSize}px ${fontStack(authorStyle.fontFamily)}`
       const aw = ctx.measureText(author || 'Author Name').width + 40
       const ah = authorStyle.fontSize + 16
       roundRect(ctx, authorPos.x - aw / 2, authorPos.y - ah / 2, aw, ah, 3)
@@ -283,7 +341,7 @@ function roundRect(
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CanvasEditor({
-  imageUrl, title, author,
+  imageUrl, title, subtitle, author,
   titleStyle, authorStyle,
   titlePos, authorPos,
   imagePos, imageScale,
@@ -299,8 +357,8 @@ export default function CanvasEditor({
     objStartX: number; objStartY: number
   } | null>(null)
 
-  // Mirror all props into refs so the stable `redraw` can always read latest
   const titleRef       = useRef(title)
+  const subtitleRef    = useRef(subtitle)
   const authorRef      = useRef(author)
   const titleStyleRef  = useRef(titleStyle)
   const authorStyleRef = useRef(authorStyle)
@@ -311,6 +369,7 @@ export default function CanvasEditor({
   const templateRef    = useRef(template)
   const dragTargetRef  = useRef<'title' | 'author' | null>(null)
   titleRef.current       = title
+  subtitleRef.current    = subtitle
   authorRef.current      = author
   titleStyleRef.current  = titleStyle
   authorStyleRef.current = authorStyle
@@ -326,6 +385,7 @@ export default function CanvasEditor({
       canvasRef.current,
       bgImageRef.current,
       titleRef.current,
+      subtitleRef.current,
       authorRef.current,
       titleStyleRef.current,
       authorStyleRef.current,
@@ -338,17 +398,19 @@ export default function CanvasEditor({
     )
   }, [])
 
-  // Export hook
   useEffect(() => {
     exportRef.current = () => canvasRef.current?.toDataURL('image/png') ?? null
   }, [exportRef, redraw])
 
-  // Redraw on any visual prop change
   useEffect(() => {
     redraw()
-  }, [title, author, titleStyle, authorStyle, titlePos, authorPos, imagePos, imageScale, template, redraw])
+  }, [title, subtitle, author, titleStyle, authorStyle, titlePos, authorPos, imagePos, imageScale, template, redraw])
 
-  // Load background image
+  // Redraw once web fonts finish loading
+  useEffect(() => {
+    document.fonts.ready.then(() => redraw())
+  }, [redraw])
+
   useEffect(() => {
     if (!imageUrl) return
     const img = new Image()
@@ -403,7 +465,6 @@ export default function CanvasEditor({
     const { x, y } = getCoords(e)
 
     if (!dragRef.current) {
-      // Cursor feedback
       canvasRef.current!.style.cursor =
         hitTitle(x, y) || hitAuthor(x, y) ? 'grab'
         : bgImageRef.current ? 'move'

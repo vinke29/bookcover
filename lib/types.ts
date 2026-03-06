@@ -1,5 +1,6 @@
 export interface BookInfo {
   title: string
+  subtitle: string
   author: string
   genre: string
   blurb: string
@@ -20,6 +21,8 @@ export interface TextStyle {
   fontFamily: string
   fontSize: number
   color: string
+  strokeWidth?: number
+  strokeColor?: string
 }
 
 export interface Position {
@@ -61,4 +64,6 @@ export interface Template {
   ornament?: boolean
   /** Skip text shadow (for templates with light backgrounds) */
   noShadow?: boolean
+  /** Semi-transparent full-width band drawn behind the title block */
+  textBackdrop?: { opacity: number; padding: number }
 }

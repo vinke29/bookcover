@@ -13,7 +13,7 @@ const DEFAULT_TEMPLATE = TEMPLATES[0]
 
 export default function Home() {
   const [bookInfo, setBookInfo] = useState<BookInfo>({
-    title: '', author: '', genre: '', blurb: '', mood: '',
+    title: '', subtitle: '', author: '', genre: '', blurb: '', mood: '',
   })
   const [concept, setConcept] = useState<CoverConcept | null>(null)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
@@ -136,6 +136,7 @@ export default function Home() {
           <CanvasEditor
             imageUrl={imageUrl}
             title={bookInfo.title}
+            subtitle={bookInfo.subtitle}
             author={bookInfo.author}
             titleStyle={titleStyle}
             authorStyle={authorStyle}

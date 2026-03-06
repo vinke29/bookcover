@@ -18,8 +18,8 @@ Mood: ${bookInfo.mood || 'not specified'}
 Description: ${bookInfo.blurb || 'not provided'}
 
 Respond with a JSON object containing:
-- imagePrompt: A detailed, cinematic image generation prompt for the cover art background. Focus on atmosphere, lighting, composition, and style. Do NOT include any text, letters, or typography in the image. Append "professional book cover art, no text, no words, no letters" at the end.
-- titleFont: One of these system fonts that fits the genre: Georgia, Times New Roman, Palatino Linotype, Arial, Helvetica, Impact, Garamond, Trebuchet MS, Courier New
+- imagePrompt: A detailed image generation prompt for the cover art. Request an ILLUSTRATION or PAINTING style (not photorealistic): e.g. "digital painting", "concept art", "graphic novel illustration", "painterly", "flat graphic art", "ink illustration". Describe the subject, atmosphere, color palette, and lighting. The composition should have a clear focal point with some negative space for large title text. Do NOT include any text, letters, or typography. End with: "book cover illustration, no text, no letters, highly detailed".
+- titleFont: One of these fonts that fits the genre: Georgia, Playfair Display, EB Garamond, Cinzel, Palatino Linotype, Bebas Neue, Oswald, Montserrat, Impact, Helvetica, Courier New
 - titleColor: Hex color for the title text (high contrast, readable over the image)
 - authorColor: Hex color for the author name (slightly more subtle than title)
 - layout: Where to position the title — one of: "top", "center", "bottom"

@@ -53,6 +53,18 @@ export default function DescriptionPanel({ bookInfo, onChange, onGenerate, onIma
         </div>
 
         <div>
+          <label className="block text-xs text-zinc-400 mb-1.5">
+            Subtitle <span className="text-zinc-600 font-normal">(optional — "A Novel", series name, etc.)</span>
+          </label>
+          <input
+            value={bookInfo.subtitle}
+            onChange={e => set('subtitle', e.target.value)}
+            placeholder="e.g. A Novel"
+            className={inputClass}
+          />
+        </div>
+
+        <div>
           <label className="block text-xs text-zinc-400 mb-1.5">Author Name</label>
           <input
             value={bookInfo.author}

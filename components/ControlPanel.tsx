@@ -21,14 +21,19 @@ interface Props {
 }
 
 const FONTS = [
+  // Google Fonts
+  { label: 'Bebas Neue', value: 'Bebas Neue' },
+  { label: 'Playfair Display', value: 'Playfair Display' },
+  { label: 'Oswald', value: 'Oswald' },
+  { label: 'Cinzel', value: 'Cinzel' },
+  { label: 'Montserrat', value: 'Montserrat' },
+  { label: 'EB Garamond', value: 'EB Garamond' },
+  // System fonts
   { label: 'Georgia', value: 'Georgia' },
   { label: 'Times New Roman', value: 'Times New Roman' },
   { label: 'Palatino', value: 'Palatino Linotype' },
-  { label: 'Garamond', value: 'Garamond' },
-  { label: 'Arial', value: 'Arial' },
-  { label: 'Helvetica', value: 'Helvetica' },
-  { label: 'Trebuchet MS', value: 'Trebuchet MS' },
   { label: 'Impact', value: 'Impact' },
+  { label: 'Helvetica', value: 'Helvetica' },
   { label: 'Courier New', value: 'Courier New' },
 ]
 
@@ -140,6 +145,20 @@ function TextStyleControl({
           className="w-8 h-8 rounded cursor-pointer" />
         <span className="text-xs text-zinc-500 font-mono truncate">{style.color}</span>
       </div>
+      <div>
+        <label className="text-xs text-zinc-500 block mb-1">Outline — {style.strokeWidth ?? 0}px</label>
+        <input type="range" min={0} max={8} value={style.strokeWidth ?? 0}
+          onChange={e => onChange({ ...style, strokeWidth: Number(e.target.value) })}
+          className="w-full accent-indigo-500" />
+      </div>
+      {(style.strokeWidth ?? 0) > 0 && (
+        <div className="flex items-center gap-2.5">
+          <label className="text-xs text-zinc-500">Outline color</label>
+          <input type="color" value={style.strokeColor ?? '#000000'}
+            onChange={e => onChange({ ...style, strokeColor: e.target.value })}
+            className="w-8 h-8 rounded cursor-pointer" />
+        </div>
+      )}
     </div>
   )
 }
