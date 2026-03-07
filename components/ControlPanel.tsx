@@ -1,13 +1,15 @@
 'use client'
 
 import type { TextStyle, CoverConcept, Template } from '@/lib/types'
-import { TEMPLATES } from '@/lib/templates'
+import { TEMPLATES, customLayoutToTemplate } from '@/lib/templates'
 import { COLOR_GRADES } from '@/lib/grades'
 
 interface Props {
   titleStyle: TextStyle
+  subtitleStyle: TextStyle
   authorStyle: TextStyle
   onTitleStyleChange: (s: TextStyle) => void
+  onSubtitleStyleChange: (s: TextStyle) => void
   onAuthorStyleChange: (s: TextStyle) => void
   onExport: () => void
   canExport: boolean
@@ -27,19 +29,24 @@ interface Props {
 }
 
 const FONTS = [
-  // Google Fonts
-  { label: 'Bebas Neue', value: 'Bebas Neue' },
+  // Expressive / high personality
+  { label: 'Abril Fatface', value: 'Abril Fatface' },
+  { label: 'Dancing Script', value: 'Dancing Script' },
+  { label: 'Pacifico', value: 'Pacifico' },
+  // Serif
   { label: 'Playfair Display', value: 'Playfair Display' },
-  { label: 'Oswald', value: 'Oswald' },
-  { label: 'Cinzel', value: 'Cinzel' },
-  { label: 'Montserrat', value: 'Montserrat' },
   { label: 'EB Garamond', value: 'EB Garamond' },
-  // System fonts
+  { label: 'Cinzel', value: 'Cinzel' },
+  { label: 'Lora', value: 'Lora' },
   { label: 'Georgia', value: 'Georgia' },
-  { label: 'Times New Roman', value: 'Times New Roman' },
-  { label: 'Palatino', value: 'Palatino Linotype' },
+  // Sans-serif
+  { label: 'Bebas Neue', value: 'Bebas Neue' },
+  { label: 'Oswald', value: 'Oswald' },
+  { label: 'Montserrat', value: 'Montserrat' },
+  { label: 'Raleway', value: 'Raleway' },
   { label: 'Impact', value: 'Impact' },
   { label: 'Helvetica', value: 'Helvetica' },
+  // Mono
   { label: 'Courier New', value: 'Courier New' },
 ]
 
@@ -135,8 +142,24 @@ function TextStyleControl({
       <div>
         <label className="text-xs text-zinc-500 block mb-1">Font</label>
         <select value={style.fontFamily} onChange={e => onChange({ ...style, fontFamily: e.target.value })} className={sel}>
-          {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+          {FONTS.map(f => (
+            <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+              {f.label}
+            </option>
+          ))}
         </select>
+        {/* Live font preview */}
+        <div className="mt-1 px-2 py-1.5 bg-zinc-800 rounded text-center overflow-hidden" style={{
+          fontFamily: `"${style.fontFamily}", serif`,
+          fontSize: 18,
+          color: '#e4e4e7',
+          fontStyle: style.italic ? 'italic' : 'normal',
+          lineHeight: 1.3,
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+        }}>
+          Aa Bb Cc 123
+        </div>
       </div>
       <div>
         <label className="text-xs text-zinc-500 block mb-1">Size — {style.fontSize}px</label>
@@ -150,6 +173,57 @@ function TextStyleControl({
           onChange={e => onChange({ ...style, color: e.target.value })}
           className="w-8 h-8 rounded cursor-pointer" />
         <span className="text-xs text-zinc-500 font-mono truncate">{style.color}</span>
+      </div>
+      {/* Italic + Width-fill toggles */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onChange({ ...style, italic: !style.italic })}
+          className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+            style.italic
+              ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400'
+              : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
+          }`}
+        >
+          <span style={{ fontStyle: 'italic' }}>I</span> Italic
+        </button>
+        <button
+          onClick={() => onChange({ ...style, widthFill: !style.widthFill })}
+          title="Auto-size each word to fill canvas width"
+          className={`px-2.5 py-1 text-xs rounded border transition-colors ${
+            style.widthFill
+              ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400'
+              : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
+          }`}
+        >
+          ↔ Fill
+        </button>
+      </div>
+      {/* Rotation */}
+      <div>
+        <label className="text-xs text-zinc-500 block mb-1">
+          Rotation — {style.rotation ?? 0}°
+        </label>
+        <input type="range" min={-30} max={30} step={0.5} value={style.rotation ?? 0}
+          onChange={e => onChange({ ...style, rotation: Number(e.target.value) })}
+          className="w-full accent-indigo-500" />
+      </div>
+      {/* Line height */}
+      <div>
+        <label className="text-xs text-zinc-500 block mb-1">
+          Line Height — {(style.lineHeight ?? 1.2).toFixed(1)}×
+        </label>
+        <input type="range" min={80} max={200} step={5} value={Math.round((style.lineHeight ?? 1.2) * 100)}
+          onChange={e => onChange({ ...style, lineHeight: Number(e.target.value) / 100 })}
+          className="w-full accent-indigo-500" />
+      </div>
+      {/* Letter spacing */}
+      <div>
+        <label className="text-xs text-zinc-500 block mb-1">
+          Letter Spacing — {style.letterSpacing ?? 0}px
+        </label>
+        <input type="range" min={0} max={20} step={0.5} value={style.letterSpacing ?? 0}
+          onChange={e => onChange({ ...style, letterSpacing: Number(e.target.value) })}
+          className="w-full accent-indigo-500" />
       </div>
       <div>
         <label className="text-xs text-zinc-500 block mb-1">Outline — {style.strokeWidth ?? 0}px</label>
@@ -170,8 +244,8 @@ function TextStyleControl({
 }
 
 export default function ControlPanel({
-  titleStyle, authorStyle,
-  onTitleStyleChange, onAuthorStyleChange,
+  titleStyle, subtitleStyle, authorStyle,
+  onTitleStyleChange, onSubtitleStyleChange, onAuthorStyleChange,
   onExport, canExport,
   concept, onRegenerate, isGenerating,
   activeTemplateId, onApplyTemplate,
@@ -195,7 +269,34 @@ export default function ControlPanel({
                 </span>
               </div>
             ))}
+            {/* AI Layout tile */}
+            <div
+              className={`flex flex-col items-center gap-1 ${concept?.customLayout ? 'cursor-pointer' : 'opacity-30 cursor-not-allowed'}`}
+              onClick={() => {
+                if (concept?.customLayout) onApplyTemplate(customLayoutToTemplate(concept.customLayout))
+              }}
+            >
+              <div className={`relative w-[48px] h-[72px] rounded overflow-hidden border-2 transition-all flex-shrink-0 flex items-center justify-center ${
+                activeTemplateId === 'ai'
+                  ? 'border-indigo-500 ring-1 ring-indigo-500/40'
+                  : 'border-zinc-700 hover:border-indigo-600'
+              }`}
+                style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 50%, #1a1020 100%)' }}
+              >
+                <span className="text-[18px] leading-none" style={{
+                  background: 'linear-gradient(135deg, #a78bfa, #f0abfc)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}>✦</span>
+              </div>
+              <span className={`text-[9px] text-center leading-tight ${activeTemplateId === 'ai' ? 'text-indigo-400' : 'text-zinc-500'}`}>
+                AI
+              </span>
+            </div>
           </div>
+          {concept?.customLayout && activeTemplateId !== 'ai' && (
+            <p className="text-[10px] text-indigo-400/70 mt-2">✦ AI layout ready — click to apply</p>
+          )}
         </div>
 
         {/* ── Image ─────────────────────────────────────────── */}
@@ -203,7 +304,7 @@ export default function ControlPanel({
           <div className="border-t border-zinc-800 pt-4 space-y-2">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Image</p>
             <label className="text-xs text-zinc-500 block">Zoom — {Math.round(imageScale * 100)}%</label>
-            <input type="range" min={50} max={300} step={5} value={Math.round(imageScale * 100)}
+            <input type="range" min={100} max={300} step={5} value={Math.round(imageScale * 100)}
               onChange={e => onImageScaleChange(Number(e.target.value) / 100)}
               className="w-full accent-indigo-500" />
             <p className="text-xs text-zinc-600">Drag the canvas to reposition</p>
@@ -237,6 +338,10 @@ export default function ControlPanel({
         <div className="border-t border-zinc-800 pt-4">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Typography</p>
           <TextStyleControl label="Title" style={titleStyle} onChange={onTitleStyleChange} />
+        </div>
+
+        <div className="border-t border-zinc-800 pt-4">
+          <TextStyleControl label="Subtitle" style={subtitleStyle} onChange={onSubtitleStyleChange} />
         </div>
 
         <div className="border-t border-zinc-800 pt-4">

@@ -5,13 +5,28 @@ import dynamic from 'next/dynamic'
 import DescriptionPanel from '@/components/DescriptionPanel'
 import ControlPanel from '@/components/ControlPanel'
 import type { BookInfo, CoverConcept, TextStyle, Position, Template } from '@/lib/types'
-import { TEMPLATES, CANVAS_W, CANVAS_H } from '@/lib/templates'
+import { TEMPLATES, CANVAS_W, CANVAS_H, customLayoutToTemplate } from '@/lib/templates'
 
 const SPINE_W = 48
 
 const CanvasEditor = dynamic(() => import('@/components/CanvasEditor'), { ssr: false })
 
 const DEFAULT_TEMPLATE = TEMPLATES[0]
+
+// Compute a subtitle default Y position that sits between title bottom and author,
+// clear of any accentBar, without overlapping either.
+function defaultSubtitleY(t: Template): number {
+  const subFs = Math.max(16, Math.round(t.titleStyle.fontSize * 0.38))
+  // Approximate title bottom (single-line estimate)
+  const titleBottom = t.titlePos.y + t.titleStyle.fontSize * 0.65
+  // Nudge down past accentBar if the template has one
+  const afterBar = t.accentBar ? titleBottom + t.accentBar.height + 20 : titleBottom
+  const option1 = afterBar + subFs * 0.7 + 6
+  // Keep clear of author
+  const authorTop = t.authorPos.y - t.authorStyle.fontSize * 1.2
+  const option2 = authorTop - subFs * 0.5 - 4
+  return Math.min(option1, option2)
+}
 
 export default function Home() {
   const [bookInfo, setBookInfo] = useState<BookInfo>({
@@ -25,10 +40,20 @@ export default function Home() {
 
   // Typography — initialised from the default template
   const [titleStyle, setTitleStyle] = useState<TextStyle>(DEFAULT_TEMPLATE.titleStyle)
+  const [subtitleStyle, setSubtitleStyle] = useState<TextStyle>({
+    fontFamily: DEFAULT_TEMPLATE.titleStyle.fontFamily,
+    fontSize: Math.max(16, Math.round(DEFAULT_TEMPLATE.titleStyle.fontSize * 0.38)),
+    color: DEFAULT_TEMPLATE.titleStyle.color,
+    italic: true,
+  })
   const [authorStyle, setAuthorStyle] = useState<TextStyle>(DEFAULT_TEMPLATE.authorStyle)
 
   // Text positions — draggable on canvas
   const [titlePos, setTitlePos] = useState<Position>(DEFAULT_TEMPLATE.titlePos)
+  const [subtitlePos, setSubtitlePos] = useState<Position>({
+    x: DEFAULT_TEMPLATE.titlePos.x,
+    y: defaultSubtitleY(DEFAULT_TEMPLATE),
+  })
   const [authorPos, setAuthorPos] = useState<Position>(DEFAULT_TEMPLATE.authorPos)
 
   // Active template (controls overlay + decoration)
@@ -59,9 +84,28 @@ export default function Home() {
   const handleApplyTemplate = (t: Template) => {
     setActiveTemplate(t)
     setTitleStyle(t.titleStyle)
+    setSubtitleStyle({
+      fontFamily: t.titleStyle.fontFamily,
+      fontSize: Math.max(16, Math.round(t.titleStyle.fontSize * 0.38)),
+      color: t.titleStyle.color,
+      italic: true,
+    })
     setAuthorStyle(t.authorStyle)
     setTitlePos(t.titlePos)
+    setSubtitlePos({
+      x: t.titlePos.x,
+      y: defaultSubtitleY(t),
+    })
     setAuthorPos(t.authorPos)
+  }
+
+  const handleTitlePlacementSuggested = (pos: Position) => {
+    setTitlePos(pos)
+    // Recompute relative to new title position using the same safe formula
+    setSubtitlePos(p => ({
+      x: p.x,
+      y: pos.y + activeTemplate.titleStyle.fontSize * 0.65 + Math.max(16, Math.round(titleStyle.fontSize * 0.38)) * 0.7 + 6,
+    }))
   }
 
   const handleImageUpload = (url: string) => {
@@ -115,16 +159,33 @@ export default function Home() {
       const conceptData: CoverConcept = await conceptRes.json()
       setConcept(conceptData)
 
-      // Apply AI typography suggestions on top of current template
-      setTitleStyle(s => ({
-        ...s,
-        fontFamily: conceptData.titleFont || s.fontFamily,
-        color: conceptData.titleColor || s.color,
-      }))
-      setAuthorStyle(s => ({
-        ...s,
-        color: conceptData.authorColor || s.color,
-      }))
+      if (conceptData.customLayout) {
+        // Auto-apply the AI-designed layout
+        const aiTemplate = customLayoutToTemplate(conceptData.customLayout)
+        setActiveTemplate(aiTemplate)
+        setTitleStyle(aiTemplate.titleStyle)
+        setSubtitleStyle({
+          fontFamily: aiTemplate.titleStyle.fontFamily,
+          fontSize: Math.max(16, Math.round(aiTemplate.titleStyle.fontSize * 0.38)),
+          color: aiTemplate.titleStyle.color,
+          italic: true,
+        })
+        setAuthorStyle(aiTemplate.authorStyle)
+        setTitlePos(aiTemplate.titlePos)
+        setSubtitlePos({ x: aiTemplate.titlePos.x, y: defaultSubtitleY(aiTemplate) })
+        setAuthorPos(aiTemplate.authorPos)
+      } else {
+        // Fallback: apply font/color suggestions on top of current template
+        setTitleStyle(s => ({
+          ...s,
+          fontFamily: conceptData.titleFont || s.fontFamily,
+          color: conceptData.titleColor || s.color,
+        }))
+        setAuthorStyle(s => ({
+          ...s,
+          color: conceptData.authorColor || s.color,
+        }))
+      }
 
       // Step 2: image via fal.ai
       const imageRes = await fetch('/api/generate-image', {
@@ -227,16 +288,20 @@ export default function Home() {
                     subtitle={bookInfo.subtitle}
                     author={bookInfo.author}
                     titleStyle={titleStyle}
+                    subtitleStyle={subtitleStyle}
                     authorStyle={authorStyle}
                     titlePos={titlePos}
+                    subtitlePos={subtitlePos}
                     authorPos={authorPos}
                     imagePos={imagePos}
                     imageScale={imageScale}
                     colorGradeId={colorGradeId}
                     template={activeTemplate}
                     onTitlePosChange={setTitlePos}
+                    onSubtitlePosChange={setSubtitlePos}
                     onAuthorPosChange={setAuthorPos}
                     onImagePosChange={setImagePos}
+                    onTitlePlacementSuggested={handleTitlePlacementSuggested}
                     isLoading={isGenerating}
                     exportRef={exportFnRef}
                   />
@@ -252,16 +317,20 @@ export default function Home() {
               subtitle={bookInfo.subtitle}
               author={bookInfo.author}
               titleStyle={titleStyle}
+              subtitleStyle={subtitleStyle}
               authorStyle={authorStyle}
               titlePos={titlePos}
+              subtitlePos={subtitlePos}
               authorPos={authorPos}
               imagePos={imagePos}
               imageScale={imageScale}
               colorGradeId={colorGradeId}
               template={activeTemplate}
               onTitlePosChange={setTitlePos}
+              onSubtitlePosChange={setSubtitlePos}
               onAuthorPosChange={setAuthorPos}
               onImagePosChange={setImagePos}
+              onTitlePlacementSuggested={handleTitlePlacementSuggested}
               isLoading={isGenerating}
               exportRef={exportFnRef}
             />
@@ -270,8 +339,10 @@ export default function Home() {
 
         <ControlPanel
           titleStyle={titleStyle}
+          subtitleStyle={subtitleStyle}
           authorStyle={authorStyle}
           onTitleStyleChange={setTitleStyle}
+          onSubtitleStyleChange={setSubtitleStyle}
           onAuthorStyleChange={setAuthorStyle}
           onExport={handleExport}
           canExport={!!imageUrl}

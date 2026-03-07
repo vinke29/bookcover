@@ -7,29 +7,88 @@ export async function POST(req: NextRequest) {
   try {
     const bookInfo = await req.json()
 
-    const prompt = `You are a professional book cover designer with deep knowledge of genre conventions and visual design.
+    const prompt = `You are an award-winning book cover designer with deep knowledge of typography, composition, and genre conventions.
 
-Based on this book information, generate a detailed cover concept:
-
+Book to design for:
 Title: ${bookInfo.title}
 Author: ${bookInfo.author || 'Unknown'}
 Genre: ${bookInfo.genre}
 Mood: ${bookInfo.mood || 'not specified'}
 Description: ${bookInfo.blurb || 'not provided'}
 
-Respond with a JSON object containing:
-- imagePrompt: A detailed image generation prompt for the cover art. Request an ILLUSTRATION or PAINTING style (not photorealistic): e.g. "digital painting", "concept art", "graphic novel illustration", "painterly", "flat graphic art", "ink illustration". Describe the subject, atmosphere, color palette, and lighting. The composition should have a clear focal point with some negative space for large title text. Do NOT include any text, letters, or typography. End with: "book cover illustration, no text, no letters, highly detailed".
-- titleFont: One of these fonts that fits the genre: Georgia, Playfair Display, EB Garamond, Cinzel, Palatino Linotype, Bebas Neue, Oswald, Montserrat, Impact, Helvetica, Courier New
-- titleColor: Hex color for the title text (high contrast, readable over the image)
-- authorColor: Hex color for the author name (slightly more subtle than title)
-- layout: Where to position the title — one of: "top", "center", "bottom"
-- colorPalette: Array of exactly 5 hex color strings representing the cover's color mood
-- mood: One sentence describing the visual feeling of the cover
+Return a single flat JSON object with ALL of these fields at the top level (no nesting, no section wrappers):
+
+- imagePrompt: Detailed image generation prompt. Use ILLUSTRATION or PAINTING style (digital painting, concept art, painterly, graphic novel illustration, flat graphic art, ink illustration). CHARACTER RULE: For romance, YA, fantasy, paranormal — stylized painted characters are appropriate, NOT photorealistic. For literary fiction, thriller, mystery, historical, sci-fi, horror — NO human figures; use environments, objects, symbolic imagery, dramatic light/shadow instead. COMPOSITION: main subject in BOTTOM 60%, upper 40% as open sky/fog/darkness/negative space for title text. No text, letters, or typography in the image. End with: "book cover illustration, subject in lower half, open sky or negative space at top, no text, no letters, highly detailed"
+- titleFont: Best-fit font for the genre — one of: Playfair Display, EB Garamond, Cinzel, Bebas Neue, Oswald, Montserrat, Georgia, Impact, Helvetica, Courier New
+- titleColor: Hex color (high contrast, readable)
+- authorColor: Hex color (slightly more subtle than title)
+- layout: "top" | "center" | "bottom"
+- colorPalette: Array of exactly 5 hex colors representing the cover's mood
+- mood: One sentence describing the visual feeling
+- customLayout: (object, see below)
+
+The customLayout field is an object with this structure — design it creatively for the specific book:
+Design a completely original layout. The most important decision is overlay opacity — it determines whether the IMAGE or the TEXT is the hero. Wrong opacity = ruined cover.
+
+RULE 1 — IMAGE-HERO genres (romance, YA, cozy mystery, women's fiction, contemporary fiction):
+The artwork IS the cover. Overlay opacity MUST be 0.00–0.12 (or type "none"). The illustration fills the frame, text is a stylish guest. Use italic serif or script font (Dancing Script, Playfair Display italic), large 70–90px, white/cream text with drop shadows. titleYPercent 45–58. textBackdrop: null. Think "Beach Read", "The Hating Game", "People We Meet on Vacation" — you can see the whole illustration clearly.
+Good romance example: overlay {"type":"tint","opacity":0.06}, titleFont "Dancing Script", titleSize 86, titleItalic true, titleWidthFill false, titleRotation -2
+
+RULE 2 — TEXT-HERO genres (literary fiction, upmarket fiction, book club fiction):
+The overlay makes the image pure texture. overlay opacity 0.78–0.90. Title 84–108px bold serif, centered, titleYPercent 44–52. titleWidthFill false. The title IS the visual weight of the entire cover.
+Good literary example: overlay {"type":"tint","opacity":0.84}, titleFont "Playfair Display", titleSize 96, titleItalic false, titleWidthFill false
+
+RULE 3 — BOLD STACKED genres (commercial fiction, feel-good, rom-com, beach reads with simple illustration):
+Use titleWidthFill: true — each word auto-sizes to fill the full canvas width, stacked like "The Seven Year Slip". overlay 0.05–0.20. Large bold sans or display font. titleYPercent 40–55.
+Good stacked example: overlay {"type":"tint","opacity":0.08}, titleFont "Abril Fatface", titleWidthFill true, titleRotation 0
+
+RULE 4 — THRILLER/CRIME: Heavy vignette topOpacity 0.65–0.78, bottomOpacity 0.75–0.88. Oswald or Bebas Neue 74–95px UPPERCASE at titleYPercent 18–26. Possible red accentBar.
+
+RULE 5 — FANTASY/SCI-FI: Moderate vignette bottomOpacity 0.65–0.82. Cinzel or EB Garamond 60–80px. ornament: true. Possible border.
+
+RULE 6 — HISTORICAL: colorTint "rgba(130,80,20,0.22)", EB Garamond, border, dividerStyle "dots".
+
+Available overlay structures (use exact JSON):
+{"type":"tint","opacity":0.06}  ← image fully visible, barely-there darkening
+{"type":"tint","opacity":0.84}  ← text-hero, image recedes to texture
+{"type":"vignette","topOpacity":0.65,"bottomOpacity":0.88}  ← dark edges, clear center
+{"type":"band","bandRatio":0.40,"opacity":0.94}  ← dark band at bottom
+{"type":"solid-block","position":"bottom","heightRatio":0.32,"color":"#f0ede5"}
+{"type":"none"}  ← no darkening at all
+
+Available fonts: Abril Fatface, Dancing Script, Pacifico, Playfair Display, EB Garamond, Cinzel, Lora, Bebas Neue, Oswald, Montserrat, Raleway, Georgia, Impact, Courier New
+
+customLayout fields (ALL required):
+- overlay: one of the structures above
+- colorTint: null or "rgba(r,g,b,a)"
+- titleFont: font name from list above
+- titleSize: 36–110 (ignored when titleWidthFill is true, but still provide a reasonable value)
+- titleColor: hex
+- titleAlign: "left" | "center" | "right"
+- titleTransform: "none" | "uppercase"
+- titleYPercent: 10–88
+- titleItalic: boolean
+- titleRotation: degrees -8 to 8 (0 = straight, small angle adds personality for romance/YA)
+- titleWidthFill: boolean (true = each word fills canvas width, "Seven Year Slip" effect)
+- authorFont: font name
+- authorSize: 12–22
+- authorColor: hex
+- authorAlign: "left" | "center" | "right"
+- authorYPercent: 87–96
+- showDivider: boolean
+- dividerStyle: "line" | "dots" | "diamond"
+- accentLines: boolean
+- accentLineColor: null or color string
+- accentBar: null or {"color":"#hex","height":3}
+- ornament: boolean
+- border: null or {"padding":14,"color":"rgba(245,230,200,0.45)","lineWidth":1}
+- textBackdrop: null or {"opacity":0.5,"padding":16}
+- noShadow: boolean (ONLY true for solid-block with dark text on light bg)
 
 Return only valid JSON with no markdown or code fences.`
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
       temperature: 0.8,

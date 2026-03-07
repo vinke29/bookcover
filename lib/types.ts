@@ -15,6 +15,39 @@ export interface CoverConcept {
   layout: 'top' | 'center' | 'bottom'
   colorPalette: string[]
   mood: string
+  customLayout?: CustomLayout
+}
+
+/**
+ * AI-designed layout returned by the concept API.
+ * All positions are percentages (0–100) of canvas height/width.
+ */
+export interface CustomLayout {
+  overlay: OverlayStyle
+  colorTint: string | null          // e.g. "rgba(130,80,20,0.28)" or null
+  titleFont: string
+  titleSize: number                  // px, 36–120
+  titleColor: string
+  titleAlign: 'left' | 'center' | 'right'
+  titleTransform: 'none' | 'uppercase'
+  titleYPercent: number              // 0–100, vertical center of title block
+  titleItalic: boolean
+  titleRotation: number        // degrees
+  titleWidthFill: boolean      // auto-size each word to fill canvas width
+  authorFont: string
+  authorSize: number                 // px, 11–24
+  authorColor: string
+  authorAlign: 'left' | 'center' | 'right'
+  authorYPercent: number             // 0–100
+  showDivider: boolean
+  dividerStyle: 'line' | 'dots' | 'diamond'
+  accentLines: boolean
+  accentLineColor: string | null
+  accentBar: { color: string; height: number } | null
+  ornament: boolean
+  border: { padding: number; color: string; lineWidth: number } | null
+  textBackdrop: { opacity: number; padding: number } | null
+  noShadow: boolean
 }
 
 export interface TextStyle {
@@ -23,6 +56,12 @@ export interface TextStyle {
   color: string
   strokeWidth?: number
   strokeColor?: string
+  italic?: boolean
+  fontWeight?: 'normal' | 'bold'
+  lineHeight?: number      // multiplier, default 1.2
+  letterSpacing?: number  // extra px between chars, default 0
+  rotation?: number        // degrees, positive = clockwise
+  widthFill?: boolean      // auto-size each word to fill canvas width
 }
 
 export interface Position {

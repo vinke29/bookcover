@@ -1,7 +1,53 @@
-import type { Template } from './types'
+import type { Template, CustomLayout } from './types'
 
 export const CANVAS_W = 500
 export const CANVAS_H = 750
+
+/** Convert an AI-generated CustomLayout into a renderable Template */
+export function customLayoutToTemplate(layout: CustomLayout): Template {
+  const xForAlign = (align: 'left' | 'center' | 'right') =>
+    align === 'left' ? 28 : align === 'right' ? CANVAS_W - 28 : CANVAS_W / 2
+
+  return {
+    id: 'ai',
+    name: 'AI',
+    titleStyle: {
+      fontFamily: layout.titleFont,
+      fontSize: layout.titleSize,
+      color: layout.titleColor,
+      italic: layout.titleItalic,
+      rotation: layout.titleRotation,
+      widthFill: layout.titleWidthFill,
+    },
+    authorStyle: {
+      fontFamily: layout.authorFont,
+      fontSize: layout.authorSize,
+      color: layout.authorColor,
+    },
+    titlePos: {
+      x: xForAlign(layout.titleAlign),
+      y: CANVAS_H * layout.titleYPercent / 100,
+    },
+    authorPos: {
+      x: xForAlign(layout.authorAlign),
+      y: CANVAS_H * layout.authorYPercent / 100,
+    },
+    titleAlign: layout.titleAlign,
+    authorAlign: layout.authorAlign,
+    titleTransform: layout.titleTransform,
+    overlayStyle: layout.overlay,
+    colorTint: layout.colorTint ?? undefined,
+    border: layout.border ?? undefined,
+    showDivider: layout.showDivider,
+    dividerStyle: layout.dividerStyle,
+    accentLines: layout.accentLines,
+    accentLineColor: layout.accentLineColor ?? undefined,
+    accentBar: layout.accentBar ?? undefined,
+    ornament: layout.ornament,
+    noShadow: layout.noShadow,
+    textBackdrop: layout.textBackdrop ?? undefined,
+  }
+}
 
 export const TEMPLATES: Template[] = [
   // ── 1. Classic ──────────────────────────────────────────────────────────────
@@ -10,8 +56,8 @@ export const TEMPLATES: Template[] = [
     name: 'Classic',
     titleStyle: { fontFamily: 'Playfair Display', fontSize: 64, color: '#ffffff' },
     authorStyle: { fontFamily: 'Playfair Display', fontSize: 22, color: '#d4d4d8' },
-    titlePos: { x: CANVAS_W / 2, y: CANVAS_H * 0.78 },
-    authorPos: { x: CANVAS_W / 2, y: CANVAS_H * 0.93 },
+    titlePos: { x: CANVAS_W / 2, y: CANVAS_H * 0.72 },
+    authorPos: { x: CANVAS_W / 2, y: CANVAS_H * 0.95 },
     titleAlign: 'center', authorAlign: 'center',
     titleTransform: 'none',
     overlayStyle: { type: 'vignette', topOpacity: 0.40, bottomOpacity: 0.88 },
@@ -89,7 +135,7 @@ export const TEMPLATES: Template[] = [
     name: 'Thriller',
     titleStyle: { fontFamily: 'Oswald', fontSize: 78, color: '#ffffff' },
     authorStyle: { fontFamily: 'Montserrat', fontSize: 14, color: '#999999' },
-    titlePos: { x: CANVAS_W / 2, y: CANVAS_H * 0.13 },
+    titlePos: { x: CANVAS_W / 2, y: CANVAS_H * 0.20 },
     authorPos: { x: CANVAS_W / 2, y: CANVAS_H * 0.96 },
     titleAlign: 'center', authorAlign: 'center',
     titleTransform: 'none',
