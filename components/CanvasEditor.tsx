@@ -55,6 +55,7 @@ function drawWidthFillTitle(
   style: TextStyle,
   noShadow: boolean | undefined,
   shadowBlurOverride?: number,
+  maxH?: number,
 ): number {
   const lhMult = style.lineHeight ?? 1.05
 
@@ -71,16 +72,19 @@ function drawWidthFillTitle(
 
   let totalH = sizes.reduce((sum, s) => sum + s * lhMult, 0)
 
-  // Scale down proportionally if total block exceeds 90% of canvas height
-  const maxH = CANVAS_H * 0.90
-  if (totalH > maxH) {
-    const scale = maxH / totalH
+  // Scale down proportionally if total block exceeds maxH
+  const heightCap = maxH ?? CANVAS_H * 0.90
+  if (totalH > heightCap) {
+    const scale = heightCap / totalH
     sizes = sizes.map(s => Math.floor(s * scale))
     totalH = sizes.reduce((sum, s) => sum + s * lhMult, 0)
   }
 
-  // Clamp center Y so block never bleeds above the top of the canvas
-  const safeCenterY = Math.max(blockCenterY, totalH / 2 + 8)
+  // Clamp center Y so block never bleeds above top or below bottom of canvas
+  const safeCenterY = Math.min(
+    Math.max(blockCenterY, totalH / 2 + 8),
+    CANVAS_H - totalH / 2 - 8,
+  )
   let y = safeCenterY - totalH / 2
 
   // Pass 2: draw
@@ -393,9 +397,20 @@ function drawCover(
 
   let widthFillBottomY = 0
   if (effectiveTitleStyle.widthFill) {
-    // Width-fill: each word auto-sizes to fill canvas width
+    // Width-fill: always centered horizontally; respect border insets
+    const borderInset = template.border ? template.border.padding * 2 : 0
+    const wfMaxW = maxW - borderInset
+    // Compute the available vertical band: 8px from top to just above subtitle+author
+    const subtitleRoom = subtitle ? subtitleStyle.fontSize + 20 : 12
+    const wfTop    = 8
+    const wfBottom = authorPos.y - subtitleRoom - 8
+    const wfCenter = (wfTop + wfBottom) / 2
+    const wfMaxH   = Math.max(60, wfBottom - wfTop)
     const words = displayTitle.split(' ').filter(Boolean)
-    widthFillBottomY = drawWidthFillTitle(ctx, words, maxW, titlePos.x, titlePos.y, effectiveTitleStyle, template.noShadow, shadowBlur)
+    widthFillBottomY = drawWidthFillTitle(
+      ctx, words, wfMaxW, CANVAS_W / 2, wfCenter,
+      effectiveTitleStyle, template.noShadow, shadowBlur, wfMaxH,
+    )
   } else {
     ctx.textAlign = template.titleAlign
     ctx.textBaseline = 'middle'
