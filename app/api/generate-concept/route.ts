@@ -36,8 +36,8 @@ CRITICAL COLOR RULE FOR IMAGE-HERO: titleColor MUST be "#ffffff" (white). Never 
 Good romance example: overlay {"type":"tint","opacity":0.06}, titleFont "Dancing Script", titleSize 86, titleItalic true, titleColor "#ffffff", authorColor "rgba(255,255,255,0.75)", titleWidthFill false, titleRotation -2
 
 RULE 2 — TEXT-HERO genres (literary fiction, upmarket fiction, book club fiction):
-The overlay makes the image pure texture. overlay opacity 0.78–0.90. Title 84–108px bold serif, centered, titleYPercent 44–52. titleWidthFill false. The title IS the visual weight of the entire cover.
-Good literary example: overlay {"type":"tint","opacity":0.84}, titleFont "Playfair Display", titleSize 96, titleItalic false, titleWidthFill false
+The overlay darkens the image so it reads as texture behind the title. overlay opacity 0.45–0.62. Title 84–108px bold serif, centered, titleYPercent 44–52. titleWidthFill false. The title IS the visual weight of the entire cover.
+Good literary example: overlay {"type":"tint","opacity":0.52}, titleFont "Playfair Display", titleSize 96, titleItalic false, titleWidthFill false
 
 RULE 3 — BOLD STACKED genres (commercial fiction, feel-good, rom-com, beach reads with simple illustration):
 Use titleWidthFill: true — each word auto-sizes to fill the full canvas width, stacked like "The Seven Year Slip". overlay 0.05–0.20. Large bold sans or display font. titleYPercent 45–60.
@@ -52,7 +52,7 @@ RULE 6 — HISTORICAL: colorTint "rgba(130,80,20,0.22)", EB Garamond, border, di
 
 Available overlay structures (use exact JSON):
 {"type":"tint","opacity":0.06}  ← image fully visible, barely-there darkening
-{"type":"tint","opacity":0.84}  ← text-hero, image recedes to texture
+{"type":"tint","opacity":0.52}  ← text-hero, image recedes to texture but still visible
 {"type":"vignette","topOpacity":0.65,"bottomOpacity":0.88}  ← dark edges, clear center
 {"type":"band","bandRatio":0.40,"opacity":0.94}  ← dark band at bottom
 {"type":"solid-block","position":"bottom","heightRatio":0.32,"color":"#f0ede5"}

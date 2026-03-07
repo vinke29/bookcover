@@ -191,6 +191,21 @@ export default function Home() {
       if (conceptData.customLayout) {
         // Auto-apply the AI-designed layout
         const layout = conceptData.customLayout
+
+        // Cap overlay opacity so the AI can never produce a completely black cover.
+        // Max tint: 0.65, max vignette channel: 0.88 (vigettes are naturally lighter at center).
+        const MAX_TINT = 0.65
+        const MAX_VIGNETTE = 0.88
+        if (layout.overlay.type === 'tint' && layout.overlay.opacity > MAX_TINT) {
+          layout.overlay = { ...layout.overlay, opacity: MAX_TINT }
+        } else if (layout.overlay.type === 'vignette') {
+          layout.overlay = {
+            ...layout.overlay,
+            topOpacity:    Math.min(layout.overlay.topOpacity,    MAX_VIGNETTE),
+            bottomOpacity: Math.min(layout.overlay.bottomOpacity, MAX_VIGNETTE),
+          }
+        }
+
         const aiTemplate = customLayoutToTemplate(layout)
 
         // For light overlays, enforce white — any other color risks blending into
