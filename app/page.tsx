@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import DescriptionPanel from '@/components/DescriptionPanel'
 import ControlPanel from '@/components/ControlPanel'
-import type { BookInfo, CoverConcept, TextStyle, Position, Template } from '@/lib/types'
+import type { BookInfo, CoverConcept, TextStyle, Position, Template, OverlayStyle } from '@/lib/types'
 import { TEMPLATES, CANVAS_W, CANVAS_H, customLayoutToTemplate } from '@/lib/templates'
 
 const SPINE_W = 48
@@ -77,7 +77,7 @@ export default function Home() {
   // Which text element is focused in the right panel
   const [focusedElement, setFocusedElement] = useState<'title' | 'subtitle' | 'author'>('title')
 
-  const exportFnRef = useRef<(() => string | null) | null>(null)
+  const exportFnRef = useRef<((scale?: number) => string | null) | null>(null)
 
   // The image shown on canvas: prefer uploaded over generated
   const imageUrl = uploadedImageUrl ?? generatedImageUrl
@@ -110,6 +110,31 @@ export default function Home() {
       x: p.x,
       y: pos.y + activeTemplate.titleStyle.fontSize * 0.65 + Math.min(22, Math.max(14, Math.round(titleStyle.fontSize * 0.26))) * 0.7 + 6,
     }))
+  }
+
+  const handleOverlayChange = (darkness: number) => {
+    setActiveTemplate(t => {
+      const ov: OverlayStyle = t.overlayStyle
+      if (ov.type === 'tint') {
+        return { ...t, overlayStyle: { type: 'tint', opacity: darkness } }
+      }
+      if (ov.type === 'vignette') {
+        const current = (ov.topOpacity + ov.bottomOpacity) / 2
+        if (current === 0) {
+          return { ...t, overlayStyle: { type: 'vignette', topOpacity: darkness * 0.85, bottomOpacity: darkness } }
+        }
+        const scale = darkness / current
+        return { ...t, overlayStyle: {
+          type: 'vignette',
+          topOpacity: Math.min(1, ov.topOpacity * scale),
+          bottomOpacity: Math.min(1, ov.bottomOpacity * scale),
+        }}
+      }
+      if (ov.type === 'band') {
+        return { ...t, overlayStyle: { ...ov, opacity: Math.min(1, darkness / 0.55) } }
+      }
+      return t
+    })
   }
 
   const handleImageUpload = (url: string) => {
@@ -223,8 +248,8 @@ export default function Home() {
     }
   }
 
-  const handleExport = () => {
-    const dataUrl = exportFnRef.current?.()
+  const handleExport = (scale = 1) => {
+    const dataUrl = exportFnRef.current?.(scale)
     if (!dataUrl) return
     const a = document.createElement('a')
     a.href = dataUrl
@@ -382,6 +407,8 @@ export default function Home() {
           hasDepth={!!fgImageUrl}
           focusedElement={focusedElement}
           onElementFocus={setFocusedElement}
+          overlayStyle={activeTemplate.overlayStyle}
+          onOverlayChange={handleOverlayChange}
         />
       </div>
     </div>

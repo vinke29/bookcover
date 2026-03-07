@@ -1,6 +1,7 @@
 'use client'
 
-import type { TextStyle, CoverConcept, Template } from '@/lib/types'
+import { useState } from 'react'
+import type { TextStyle, CoverConcept, Template, OverlayStyle } from '@/lib/types'
 import { TEMPLATES, customLayoutToTemplate } from '@/lib/templates'
 import { COLOR_GRADES } from '@/lib/grades'
 
@@ -11,7 +12,6 @@ interface Props {
   onTitleStyleChange: (s: TextStyle) => void
   onSubtitleStyleChange: (s: TextStyle) => void
   onAuthorStyleChange: (s: TextStyle) => void
-  onExport: () => void
   canExport: boolean
   concept: CoverConcept | null
   onRegenerate: () => void
@@ -28,6 +28,9 @@ interface Props {
   hasDepth: boolean
   focusedElement: 'title' | 'subtitle' | 'author'
   onElementFocus: (el: 'title' | 'subtitle' | 'author') => void
+  overlayStyle: OverlayStyle
+  onOverlayChange: (darkness: number) => void
+  onExport: (scale: number) => void
 }
 
 const FONTS = [
@@ -269,17 +272,33 @@ function TextStyleControl({
   )
 }
 
+const EXPORT_SIZES = [
+  { label: 'Screen · 500 × 750',        scale: 1 },
+  { label: 'Ebook / KDP · 1,600 × 2,400', scale: 3.2 },
+  { label: 'Print · 2,500 × 3,750',     scale: 5 },
+]
+
+function overlayDarknessFromStyle(style: OverlayStyle): number {
+  if (style.type === 'tint')     return style.opacity
+  if (style.type === 'vignette') return (style.topOpacity + style.bottomOpacity) / 2
+  if (style.type === 'band')     return style.opacity * 0.55
+  return -1 // solid-block / none — slider hidden
+}
+
 export default function ControlPanel({
   titleStyle, subtitleStyle, authorStyle,
   onTitleStyleChange, onSubtitleStyleChange, onAuthorStyleChange,
-  onExport, canExport,
+  canExport,
   concept, onRegenerate, isGenerating,
   activeTemplateId, onApplyTemplate,
   imageScale, onImageScaleChange, hasImage,
   colorGradeId, onColorGradeChange,
   onEnableDepth, isRemovingBg, hasDepth,
   focusedElement, onElementFocus,
+  overlayStyle, onOverlayChange, onExport,
 }: Props) {
+  const [exportScale, setExportScale] = useState(1)
+  const overlayDarkness = overlayDarknessFromStyle(overlayStyle)
   return (
     <aside className="w-72 border-l border-zinc-800 flex flex-col bg-zinc-950 overflow-y-auto shrink-0">
       <div className="p-5 flex-1 space-y-5">
@@ -323,6 +342,25 @@ export default function ControlPanel({
           </div>
           {concept?.customLayout && activeTemplateId !== 'ai' && (
             <p className="text-[10px] text-indigo-400/70 mt-2">✦ AI layout ready — click to apply</p>
+          )}
+
+          {/* Overlay darkness slider — hidden for solid-block and none */}
+          {overlayDarkness >= 0 && (
+            <div className="mt-4">
+              <div className="flex justify-between items-baseline mb-1">
+                <label className="text-xs text-zinc-500">Overlay</label>
+                <span className="text-[10px] text-zinc-600">{Math.round(overlayDarkness * 100)}%</span>
+              </div>
+              <input
+                type="range" min={0} max={100} step={1}
+                value={Math.round(overlayDarkness * 100)}
+                onChange={e => onOverlayChange(Number(e.target.value) / 100)}
+                className="w-full accent-indigo-500"
+              />
+              <div className="flex justify-between text-[10px] text-zinc-600 mt-0.5">
+                <span>Image</span><span>Dark</span>
+              </div>
+            </div>
           )}
         </div>
 
@@ -445,13 +483,25 @@ export default function ControlPanel({
         >
           Regenerate
         </button>
-        <button
-          onClick={onExport}
-          disabled={!canExport}
-          className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-600 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
-        >
-          Export PNG
-        </button>
+        <div className="space-y-1.5">
+          <select
+            value={exportScale}
+            onChange={e => setExportScale(Number(e.target.value))}
+            disabled={!canExport}
+            className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none disabled:opacity-40"
+          >
+            {EXPORT_SIZES.map(s => (
+              <option key={s.scale} value={s.scale}>{s.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => onExport(exportScale)}
+            disabled={!canExport}
+            className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-600 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
+          >
+            Export PNG
+          </button>
+        </div>
       </div>
     </aside>
   )

@@ -652,8 +652,38 @@ export default function CanvasEditor({
   }, [])
 
   useEffect(() => {
-    exportRef.current = () => canvasRef.current?.toDataURL('image/png') ?? null
-  }, [exportRef, redraw])
+    exportRef.current = (scale = 1) => {
+      if (!canvasRef.current) return null
+      if (scale === 1) return canvasRef.current.toDataURL('image/png')
+      // Render to an offscreen canvas at the requested scale
+      const offscreen = document.createElement('canvas')
+      offscreen.width  = CANVAS_W * scale
+      offscreen.height = CANVAS_H * scale
+      const offCtx = offscreen.getContext('2d')
+      if (!offCtx) return null
+      offCtx.scale(scale, scale)
+      drawCover(
+        offscreen,
+        bgImageRef.current,
+        fgImageRef.current,
+        colorGradeIdRef.current,
+        titleRef.current,
+        subtitleRef.current,
+        authorRef.current,
+        titleStyleRef.current,
+        subtitleStyleRef.current,
+        authorStyleRef.current,
+        titlePosRef.current,
+        subtitlePosRef.current,
+        authorPosRef.current,
+        imagePosRef.current,
+        imageScaleRef.current,
+        templateRef.current,
+        null,
+      )
+      return offscreen.toDataURL('image/png')
+    }
+  }, [exportRef])
 
   useEffect(() => {
     redraw()

@@ -146,7 +146,7 @@ export const TEMPLATES: Template[] = [
     name: 'Thriller',
     titleStyle: { fontFamily: 'Oswald', fontSize: 84, color: '#ffffff' },
     authorStyle: { fontFamily: 'Montserrat', fontSize: 13, color: 'rgba(255,255,255,0.55)' },
-    titlePos: { x: CANVAS_W / 2, y: CANVAS_H * 0.18 },
+    titlePos: { x: CANVAS_W / 2, y: CANVAS_H * 0.22 },
     authorPos: { x: CANVAS_W / 2, y: CANVAS_H * 0.96 },
     titleAlign: 'center', authorAlign: 'center',
     titleTransform: 'uppercase',
