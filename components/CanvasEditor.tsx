@@ -45,7 +45,7 @@ function fontStack(family: string): string {
   return `"${family}", ${fb}`
 }
 
-/** Auto-size each word so it fills maxW, stack them, return total block height */
+/** Auto-size each word so it fills maxW, stack them, return actual rendered bottomY */
 function drawWidthFillTitle(
   ctx: CanvasRenderingContext2D,
   words: string[],
@@ -59,7 +59,7 @@ function drawWidthFillTitle(
   const lhMult = style.lineHeight ?? 1.05
 
   // Pass 1: compute font size per word
-  const sizes = words.map(word => {
+  let sizes = words.map(word => {
     let lo = 8, hi = 340
     while (hi - lo > 0.5) {
       const mid = (lo + hi) / 2
@@ -69,8 +69,19 @@ function drawWidthFillTitle(
     return Math.floor(lo)
   })
 
-  const totalH = sizes.reduce((sum, s) => sum + s * lhMult, 0)
-  let y = blockCenterY - totalH / 2
+  let totalH = sizes.reduce((sum, s) => sum + s * lhMult, 0)
+
+  // Scale down proportionally if total block exceeds 90% of canvas height
+  const maxH = CANVAS_H * 0.90
+  if (totalH > maxH) {
+    const scale = maxH / totalH
+    sizes = sizes.map(s => Math.floor(s * scale))
+    totalH = sizes.reduce((sum, s) => sum + s * lhMult, 0)
+  }
+
+  // Clamp center Y so block never bleeds above the top of the canvas
+  const safeCenterY = Math.max(blockCenterY, totalH / 2 + 8)
+  let y = safeCenterY - totalH / 2
 
   // Pass 2: draw
   for (let i = 0; i < words.length; i++) {
@@ -99,7 +110,7 @@ function drawWidthFillTitle(
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0
     y += fs * lhMult
   }
-  return totalH
+  return safeCenterY + totalH / 2  // actual rendered bottom Y
 }
 
 function buildFont(ts: TextStyle, defaultWeight: 'normal' | 'bold' = 'normal'): string {
@@ -380,10 +391,11 @@ function drawCover(
     ctx.translate(-titlePos.x, -titlePos.y)
   }
 
+  let widthFillBottomY = 0
   if (effectiveTitleStyle.widthFill) {
     // Width-fill: each word auto-sizes to fill canvas width
     const words = displayTitle.split(' ').filter(Boolean)
-    drawWidthFillTitle(ctx, words, maxW, titlePos.x, titlePos.y, effectiveTitleStyle, template.noShadow, shadowBlur)
+    widthFillBottomY = drawWidthFillTitle(ctx, words, maxW, titlePos.x, titlePos.y, effectiveTitleStyle, template.noShadow, shadowBlur)
   } else {
     ctx.textAlign = template.titleAlign
     ctx.textBaseline = 'middle'
@@ -422,7 +434,7 @@ function drawCover(
 
   // ── Subtitle (independent draggable element) ─────────────────────────────────
   // Clamp: must stay below actual title bottom AND above the author line
-  const titleActualBottom = titleTop + titleBlockH
+  const titleActualBottom = effectiveTitleStyle.widthFill ? widthFillBottomY : titleTop + titleBlockH
   const subFloor   = titleActualBottom + subtitleStyle.fontSize * 0.6 + 6
   const subCeiling = authorPos.y - subtitleStyle.fontSize - 8
   const effectiveSubtitleY = Math.min(Math.max(subtitlePos.y, subFloor), subCeiling)
