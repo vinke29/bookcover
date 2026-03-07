@@ -40,8 +40,9 @@ The overlay makes the image pure texture. overlay opacity 0.78–0.90. Title 84�
 Good literary example: overlay {"type":"tint","opacity":0.84}, titleFont "Playfair Display", titleSize 96, titleItalic false, titleWidthFill false
 
 RULE 3 — BOLD STACKED genres (commercial fiction, feel-good, rom-com, beach reads with simple illustration):
-Use titleWidthFill: true — each word auto-sizes to fill the full canvas width, stacked like "The Seven Year Slip". overlay 0.05–0.20. Large bold sans or display font. titleYPercent 40–55.
-Good stacked example: overlay {"type":"tint","opacity":0.08}, titleFont "Abril Fatface", titleWidthFill true, titleRotation 0
+Use titleWidthFill: true — each word auto-sizes to fill the full canvas width, stacked like "The Seven Year Slip". overlay 0.05–0.20. Large bold sans or display font. titleYPercent 45–60.
+CRITICAL WIDTHFILL RULES: (a) Only use titleWidthFill: true when the title has 1–3 words. If the title has 4+ words, set titleWidthFill: false and use a large bold font instead. (b) When titleWidthFill is true, ALWAYS set titleYPercent to 45–60 (center of canvas) — never below 45, because each word renders at a very large size and the block needs space above and below. (c) Short punchy titles only: "Daisy", "The Slip", "After You" work great. "The God of the Woods" has 5 words — use titleWidthFill: false for that.
+Good stacked example: overlay {"type":"tint","opacity":0.08}, titleFont "Abril Fatface", titleWidthFill true, titleRotation 0, titleYPercent 52
 
 RULE 4 — THRILLER/CRIME: Heavy vignette topOpacity 0.65–0.78, bottomOpacity 0.75–0.88. Oswald or Bebas Neue 74–95px UPPERCASE at titleYPercent 18–26. Possible red accentBar.
 
