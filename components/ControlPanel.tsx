@@ -131,11 +131,12 @@ function TemplateThumbnail({ id, active }: { id: string; active: boolean }) {
       <div className="absolute bottom-[6px] left-[12px] right-[12px] h-[2px] bg-white/35 rounded-[1px]" />
     </div>),
 
-    // Bold: solid cream block, right-aligned dark text — unchanged
+    // Bold: solid cream block (42%), right-aligned dark text
     bold: (<div className={base}>{bg}
-      <div className="absolute bottom-0 left-0 right-0 h-[26px] bg-[#f0ede5]" />
-      <div className="absolute bottom-[14px] right-[4px] w-[28px] h-[5px] bg-zinc-800/80 rounded-[1px]" />
-      <div className="absolute bottom-[6px] right-[4px] w-[20px] h-[3px] bg-zinc-600/60 rounded-[1px]" />
+      <div className="absolute bottom-0 left-0 right-0 h-[30px] bg-[#f0ede5]" />
+      <div className="absolute bottom-[19px] right-[4px] w-[30px] h-[5px] bg-zinc-800/80 rounded-[1px]" />
+      <div className="absolute bottom-[11px] right-[4px] w-[22px] h-[4px] bg-zinc-800/70 rounded-[1px]" />
+      <div className="absolute bottom-[5px] right-[4px] w-[16px] h-[2px] bg-zinc-600/55 rounded-[1px]" />
     </div>),
   }
 

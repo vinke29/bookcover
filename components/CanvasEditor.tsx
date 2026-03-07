@@ -437,7 +437,11 @@ function drawCover(
   const titleActualBottom = effectiveTitleStyle.widthFill ? widthFillBottomY : titleTop + titleBlockH
   const subFloor   = titleActualBottom + subtitleStyle.fontSize * 0.6 + 6
   const subCeiling = authorPos.y - subtitleStyle.fontSize - 8
-  const effectiveSubtitleY = Math.min(Math.max(subtitlePos.y, subFloor), subCeiling)
+  // When there's no room between title and author, keep subtitle below the title
+  // (may nudge into the author gap) rather than letting it fall above the title
+  const effectiveSubtitleY = subCeiling >= subFloor
+    ? Math.min(Math.max(subtitlePos.y, subFloor), subCeiling)
+    : Math.max(subtitlePos.y, subFloor)
 
   if (subtitle) {
     ctx.save()

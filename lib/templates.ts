@@ -175,17 +175,19 @@ export const TEMPLATES: Template[] = [
   },
 
   // ── 8. Bold ───────────────────────────────────────────────────────────────────
-  // Cream solid block at bottom-right, dark text — unchanged from original.
+  // Cream solid block at bottom-right, dark text.
+  // Taller block (42%) + title higher up gives room for subtitle + author
+  // even when the title wraps to 2 lines.
   {
     id: 'bold',
     name: 'Bold',
     titleStyle: { fontFamily: 'Bebas Neue', fontSize: 84, color: '#111118' },
     authorStyle: { fontFamily: 'Montserrat', fontSize: 14, color: '#44444f' },
-    titlePos: { x: CANVAS_W - 28, y: CANVAS_H * 0.77 },
-    authorPos: { x: CANVAS_W - 28, y: CANVAS_H * 0.92 },
+    titlePos: { x: CANVAS_W - 28, y: CANVAS_H * 0.72 },
+    authorPos: { x: CANVAS_W - 28, y: CANVAS_H * 0.95 },
     titleAlign: 'right', authorAlign: 'right',
     titleTransform: 'none',
-    overlayStyle: { type: 'solid-block', position: 'bottom', heightRatio: 0.36, color: '#f0ede5' },
+    overlayStyle: { type: 'solid-block', position: 'bottom', heightRatio: 0.42, color: '#f0ede5' },
     showDivider: false, dividerStyle: 'line',
     accentLines: false,
     noShadow: true,
