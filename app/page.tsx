@@ -74,6 +74,9 @@ export default function Home() {
   // 3D mockup preview
   const [showMockup, setShowMockup] = useState(false)
 
+  // Which text element is focused in the right panel
+  const [focusedElement, setFocusedElement] = useState<'title' | 'subtitle' | 'author'>('title')
+
   const exportFnRef = useRef<(() => string | null) | null>(null)
 
   // The image shown on canvas: prefer uploaded over generated
@@ -86,7 +89,7 @@ export default function Home() {
     setTitleStyle(t.titleStyle)
     setSubtitleStyle({
       fontFamily: t.titleStyle.fontFamily,
-      fontSize: Math.max(16, Math.round(t.titleStyle.fontSize * 0.38)),
+      fontSize: Math.min(22, Math.max(14, Math.round(t.titleStyle.fontSize * 0.26))),
       color: t.titleStyle.color,
       italic: true,
     })
@@ -100,11 +103,12 @@ export default function Home() {
   }
 
   const handleTitlePlacementSuggested = (pos: Position) => {
+    // Don't override the AI layout's own intentional positioning
+    if (activeTemplate.id === 'ai') return
     setTitlePos(pos)
-    // Recompute relative to new title position using the same safe formula
     setSubtitlePos(p => ({
       x: p.x,
-      y: pos.y + activeTemplate.titleStyle.fontSize * 0.65 + Math.max(16, Math.round(titleStyle.fontSize * 0.38)) * 0.7 + 6,
+      y: pos.y + activeTemplate.titleStyle.fontSize * 0.65 + Math.min(22, Math.max(14, Math.round(titleStyle.fontSize * 0.26))) * 0.7 + 6,
     }))
   }
 
@@ -161,16 +165,31 @@ export default function Home() {
 
       if (conceptData.customLayout) {
         // Auto-apply the AI-designed layout
-        const aiTemplate = customLayoutToTemplate(conceptData.customLayout)
+        const layout = conceptData.customLayout
+        const aiTemplate = customLayoutToTemplate(layout)
+
+        // For light overlays, enforce white — any other color risks blending into
+        // a colorful image. White + strong drop shadow is the professional standard.
+        const overlayOpacity =
+          layout.overlay.type === 'tint' ? layout.overlay.opacity
+          : layout.overlay.type === 'none' ? 0
+          : layout.overlay.type === 'vignette'
+            ? (layout.overlay.topOpacity + layout.overlay.bottomOpacity) / 2
+          : 0.5
+        const safeTitleColor = overlayOpacity < 0.25 ? '#ffffff' : layout.titleColor
+        const safeAuthorColor = overlayOpacity < 0.25
+          ? 'rgba(255,255,255,0.80)'
+          : layout.authorColor
+
         setActiveTemplate(aiTemplate)
-        setTitleStyle(aiTemplate.titleStyle)
+        setTitleStyle({ ...aiTemplate.titleStyle, color: safeTitleColor })
         setSubtitleStyle({
           fontFamily: aiTemplate.titleStyle.fontFamily,
-          fontSize: Math.max(16, Math.round(aiTemplate.titleStyle.fontSize * 0.38)),
-          color: aiTemplate.titleStyle.color,
+          fontSize: Math.min(22, Math.max(14, Math.round(aiTemplate.titleStyle.fontSize * 0.26))),
+          color: safeTitleColor,
           italic: true,
         })
-        setAuthorStyle(aiTemplate.authorStyle)
+        setAuthorStyle({ ...aiTemplate.authorStyle, color: safeAuthorColor })
         setTitlePos(aiTemplate.titlePos)
         setSubtitlePos({ x: aiTemplate.titlePos.x, y: defaultSubtitleY(aiTemplate) })
         setAuthorPos(aiTemplate.authorPos)
@@ -302,6 +321,7 @@ export default function Home() {
                     onAuthorPosChange={setAuthorPos}
                     onImagePosChange={setImagePos}
                     onTitlePlacementSuggested={handleTitlePlacementSuggested}
+                    onElementFocus={setFocusedElement}
                     isLoading={isGenerating}
                     exportRef={exportFnRef}
                   />
@@ -331,6 +351,7 @@ export default function Home() {
               onAuthorPosChange={setAuthorPos}
               onImagePosChange={setImagePos}
               onTitlePlacementSuggested={handleTitlePlacementSuggested}
+              onElementFocus={setFocusedElement}
               isLoading={isGenerating}
               exportRef={exportFnRef}
             />
@@ -359,6 +380,8 @@ export default function Home() {
           onEnableDepth={handleEnableDepth}
           isRemovingBg={isRemovingBg}
           hasDepth={!!fgImageUrl}
+          focusedElement={focusedElement}
+          onElementFocus={setFocusedElement}
         />
       </div>
     </div>

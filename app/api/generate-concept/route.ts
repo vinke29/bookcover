@@ -31,8 +31,9 @@ The customLayout field is an object with this structure — design it creatively
 Design a completely original layout. The most important decision is overlay opacity — it determines whether the IMAGE or the TEXT is the hero. Wrong opacity = ruined cover.
 
 RULE 1 — IMAGE-HERO genres (romance, YA, cozy mystery, women's fiction, contemporary fiction):
-The artwork IS the cover. Overlay opacity MUST be 0.00–0.12 (or type "none"). The illustration fills the frame, text is a stylish guest. Use italic serif or script font (Dancing Script, Playfair Display italic), large 70–90px, white/cream text with drop shadows. titleYPercent 45–58. textBackdrop: null. Think "Beach Read", "The Hating Game", "People We Meet on Vacation" — you can see the whole illustration clearly.
-Good romance example: overlay {"type":"tint","opacity":0.06}, titleFont "Dancing Script", titleSize 86, titleItalic true, titleWidthFill false, titleRotation -2
+The artwork IS the cover. Overlay opacity MUST be 0.00–0.12 (or type "none"). The illustration fills the frame, text is a stylish guest. Use italic serif or script font (Dancing Script, Playfair Display italic), large 70–90px. titleYPercent 45–58. textBackdrop: null. Think "Beach Read", "The Hating Game", "People We Meet on Vacation" — you can see the whole illustration clearly.
+CRITICAL COLOR RULE FOR IMAGE-HERO: titleColor MUST be "#ffffff" (white). Never use pink, coral, gold, rose, or any warm color — these will be invisible against a colorful illustration. White text with drop shadow is THE professional standard for text over illustrated covers. authorColor should be "rgba(255,255,255,0.80)".
+Good romance example: overlay {"type":"tint","opacity":0.06}, titleFont "Dancing Script", titleSize 86, titleItalic true, titleColor "#ffffff", authorColor "rgba(255,255,255,0.75)", titleWidthFill false, titleRotation -2
 
 RULE 2 — TEXT-HERO genres (literary fiction, upmarket fiction, book club fiction):
 The overlay makes the image pure texture. overlay opacity 0.78–0.90. Title 84–108px bold serif, centered, titleYPercent 44–52. titleWidthFill false. The title IS the visual weight of the entire cover.

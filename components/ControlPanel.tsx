@@ -26,6 +26,8 @@ interface Props {
   onEnableDepth: () => void
   isRemovingBg: boolean
   hasDepth: boolean
+  focusedElement: 'title' | 'subtitle' | 'author'
+  onElementFocus: (el: 'title' | 'subtitle' | 'author') => void
 }
 
 const FONTS = [
@@ -60,69 +62,75 @@ function TemplateThumbnail({ id, active }: { id: string; active: boolean }) {
   const bg = <div className="absolute inset-0 bg-zinc-700" />
 
   const map: Record<string, React.ReactNode> = {
-    // Classic: vignette, title + divider + author at bottom
+    // Literary: heavy vignette top, italic serif title at top center
     classic: (<div className={base}>{bg}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/85" />
-      <div className="absolute bottom-[13px] left-[4px] right-[4px] h-[5px] bg-white/80 rounded-[1px]" />
-      <div className="absolute bottom-[8px] left-[18px] right-[18px] h-[1px] bg-white/30" />
-      <div className="absolute bottom-[4px] left-[10px] right-[10px] h-[3px] bg-white/35 rounded-[1px]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/74 via-transparent to-black/45" />
+      <div className="absolute top-[9px] left-[8px] right-[8px] h-[5px] bg-white/82 rounded-[1px]" style={{ borderRadius: '2px' }} />
+      <div className="absolute bottom-[4px] left-[12px] right-[12px] h-[2px] bg-white/30 rounded-[1px]" />
     </div>),
 
-    // Minimal: barely any overlay, left-aligned text at top
+    // Editorial: barely-there tint, uppercase left text at top, author bottom-left
     minimal: (<div className={base}>{bg}
-      <div className="absolute inset-0 bg-black/10" />
-      <div className="absolute top-[7px] left-[5px] w-[26px] h-[3px] bg-white/80 rounded-[1px]" />
-      <div className="absolute top-[14px] left-[5px] w-[18px] h-[2px] bg-white/40 rounded-[1px]" />
+      <div className="absolute inset-0 bg-black/12" />
+      <div className="absolute top-[6px] left-[5px] right-[16px] h-[4px] bg-white/88 rounded-[1px]" />
+      <div className="absolute top-[13px] left-[5px] right-[22px] h-[3px] bg-white/55 rounded-[1px]" />
+      <div className="absolute bottom-[4px] left-[5px] w-[20px] h-[2px] bg-white/35 rounded-[1px]" />
     </div>),
 
-    // Cinematic: tint, centered, accent lines flanking
+    // Cinematic: vignette, huge title at 42%, accent lines flanking, author bottom
     cinematic: (<div className={base}>{bg}
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="absolute top-[31px] left-[3px] w-[9px] h-[1px] bg-white/35" />
-      <div className="absolute top-[31px] right-[3px] w-[9px] h-[1px] bg-white/35" />
-      <div className="absolute top-[28px] left-[14px] right-[14px] h-[6px] bg-white/80 rounded-[1px]" />
-      <div className="absolute bottom-[3px] left-[11px] right-[11px] h-[2px] bg-white/30 rounded-[1px]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/42 via-transparent to-black/68" />
+      <div className="absolute top-[28px] left-[4px] right-[4px] h-[7px] bg-white/85 rounded-[1px]" />
+      <div className="absolute top-[30px] left-[2px] w-[4px] h-[1px] bg-white/38" />
+      <div className="absolute top-[30px] right-[2px] w-[4px] h-[1px] bg-white/38" />
+      <div className="absolute bottom-[3px] left-[13px] right-[13px] h-[2px] bg-white/28 rounded-[1px]" />
     </div>),
 
-    // Noir: feathered dark band at bottom
+    // Noir: dark band bottom 40%, cream title in shadow, diamond, author
     noir: (<div className={base}>{bg}
-      <div className="absolute bottom-0 left-0 right-0 h-[28px] bg-black/93" />
-      <div className="absolute left-0 right-0 h-[10px]" style={{ bottom: '28px', background: 'linear-gradient(to top,rgba(0,0,0,0.93),transparent)' }} />
-      <div className="absolute bottom-[15px] left-[4px] right-[4px] h-[5px] bg-[#f0ebe0]/70 rounded-[1px]" />
-      <div className="absolute bottom-[7px] left-[14px] right-[14px] h-[2px] bg-[#9a9080]/50 rounded-[1px]" />
+      <div className="absolute bottom-0 left-0 right-0 h-[30px] bg-black/95" />
+      <div className="absolute left-0 right-0 h-[10px]" style={{ bottom: '30px', background: 'linear-gradient(to top,rgba(0,0,0,0.95),transparent)' }} />
+      <div className="absolute bottom-[18px] left-[5px] right-[5px] h-[5px] bg-[#f0ebe0]/78 rounded-[1px]" />
+      <div className="absolute bottom-[11px] left-0 right-0 flex justify-center">
+        <div className="w-[3px] h-[3px] rotate-45 bg-[#9a9080]/55" />
+      </div>
+      <div className="absolute bottom-[4px] left-[14px] right-[14px] h-[2px] bg-[#9a9080]/45 rounded-[1px]" />
     </div>),
 
-    // Retro: warm sepia tint + border frame
+    // Heritage: sepia tint + heavy vignette bottom, inset border, dots divider
     retro: (<div className={base}>{bg}
-      <div className="absolute inset-0" style={{ background: 'rgba(130,80,20,0.30)' }} />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80" />
-      <div className="absolute inset-[3px] border border-[rgba(245,230,200,0.45)]" />
-      <div className="absolute bottom-[14px] left-[6px] right-[6px] h-[4px] bg-[#f5e6c8]/70 rounded-[1px]" />
-      <div className="absolute bottom-[7px] left-[14px] right-[14px] h-[2px] bg-[#c8aa78]/50 rounded-[1px]" />
+      <div className="absolute inset-0" style={{ background: 'rgba(100,65,10,0.22)' }} />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/82" />
+      <div className="absolute inset-[3px] border border-[rgba(245,230,200,0.40)]" />
+      <div className="absolute bottom-[14px] left-[7px] right-[7px] h-[4px] bg-[#f5e6c8]/72 rounded-[1px]" />
+      <div className="absolute bottom-[8px] left-0 right-0 flex justify-center gap-[4px]">
+        <div className="w-[2px] h-[2px] rounded-full bg-[#c8aa78]/55" />
+        <div className="w-[2px] h-[2px] rounded-full bg-[#c8aa78]/55" />
+        <div className="w-[2px] h-[2px] rounded-full bg-[#c8aa78]/55" />
+      </div>
+      <div className="absolute bottom-[3px] left-[14px] right-[14px] h-[2px] bg-[#c8aa78]/40 rounded-[1px]" />
     </div>),
 
-    // Thriller: heavy vignette, title at top, red bar
+    // Thriller: heavy vignette both ends, uppercase title at top, red bar, author bottom
     thriller: (<div className={base}>{bg}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-transparent to-black/65" />
-      <div className="absolute top-[7px] left-[5px] right-[5px] h-[6px] bg-white/80 rounded-[1px]" />
-      <div className="absolute top-[16px] left-[12px] right-[12px] h-[2px] bg-[#e63946]" />
-      <div className="absolute bottom-[4px] left-[11px] right-[11px] h-[2px] bg-white/25 rounded-[1px]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/74 via-transparent to-black/70" />
+      <div className="absolute top-[8px] left-[4px] right-[4px] h-[6px] bg-white/85 rounded-[1px]" />
+      <div className="absolute top-[17px] left-[10px] right-[10px] h-[2px] bg-[#e63946]" />
+      <div className="absolute bottom-[4px] left-[14px] right-[14px] h-[2px] bg-white/25 rounded-[1px]" />
     </div>),
 
-    // Elegant: lavender tint, ornament ◆, centered, diamond divider
+    // Romance: very light tint, script title at center, ornament + diamond divider
     elegant: (<div className={base}>{bg}
-      <div className="absolute inset-0" style={{ background: 'rgba(130,80,160,0.18)' }} />
-      <div className="absolute inset-0 bg-black/22" />
-      <div className="absolute top-[26px] left-0 right-0 flex justify-center text-white/40 text-[6px] leading-none">◆</div>
-      <div className="absolute top-[35px] left-[6px] right-[6px] h-[5px] bg-white/75 rounded-[1px]" />
-      <div className="absolute top-[43px] left-0 right-0 flex justify-center text-white/25 text-[6px] leading-none">◆</div>
-      <div className="absolute bottom-[7px] left-[10px] right-[10px] h-[2px] bg-white/35 rounded-[1px]" />
+      <div className="absolute inset-0 bg-black/8" />
+      <div className="absolute top-[25px] left-0 right-0 flex justify-center text-white/45 text-[6px] leading-none">◆</div>
+      <div className="absolute top-[32px] left-[5px] right-[5px] h-[6px] bg-white/82 rounded-[2px]" />
+      <div className="absolute top-[41px] left-0 right-0 flex justify-center text-white/30 text-[6px] leading-none">◆</div>
+      <div className="absolute bottom-[6px] left-[12px] right-[12px] h-[2px] bg-white/35 rounded-[1px]" />
     </div>),
 
-    // Bold: solid cream block bottom-right, dark text
+    // Bold: solid cream block, right-aligned dark text — unchanged
     bold: (<div className={base}>{bg}
       <div className="absolute bottom-0 left-0 right-0 h-[26px] bg-[#f0ede5]" />
-      <div className="absolute bottom-[14px] left-[4px] right-[4px] h-[5px] bg-zinc-800/80 rounded-[1px]" style={{ marginLeft: 'auto' }} />
       <div className="absolute bottom-[14px] right-[4px] w-[28px] h-[5px] bg-zinc-800/80 rounded-[1px]" />
       <div className="absolute bottom-[6px] right-[4px] w-[20px] h-[3px] bg-zinc-600/60 rounded-[1px]" />
     </div>),
@@ -136,18 +144,36 @@ function TextStyleControl({
 }: {
   label: string; style: TextStyle; onChange: (s: TextStyle) => void
 }) {
+  const fontIdx = Math.max(0, FONTS.findIndex(f => f.value === style.fontFamily))
+
+  const cycleFont = (dir: 1 | -1) => {
+    const next = (fontIdx + dir + FONTS.length) % FONTS.length
+    onChange({ ...style, fontFamily: FONTS[next].value })
+  }
+
   return (
     <div className="space-y-2.5">
       <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{label}</p>
       <div>
         <label className="text-xs text-zinc-500 block mb-1">Font</label>
-        <select value={style.fontFamily} onChange={e => onChange({ ...style, fontFamily: e.target.value })} className={sel}>
-          {FONTS.map(f => (
-            <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+        {/* Font selector with prev/next arrows for quick cycling */}
+        <div className="flex gap-1 items-center">
+          <button
+            onClick={() => cycleFont(-1)}
+            className="shrink-0 w-7 h-[34px] flex items-center justify-center bg-zinc-900 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 transition-colors text-base leading-none"
+          >‹</button>
+          <select value={style.fontFamily} onChange={e => onChange({ ...style, fontFamily: e.target.value })} className={`${sel} flex-1`}>
+            {FONTS.map(f => (
+              <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => cycleFont(1)}
+            className="shrink-0 w-7 h-[34px] flex items-center justify-center bg-zinc-900 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 transition-colors text-base leading-none"
+          >›</button>
+        </div>
         {/* Live font preview */}
         <div className="mt-1 px-2 py-1.5 bg-zinc-800 rounded text-center overflow-hidden" style={{
           fontFamily: `"${style.fontFamily}", serif`,
@@ -252,6 +278,7 @@ export default function ControlPanel({
   imageScale, onImageScaleChange, hasImage,
   colorGradeId, onColorGradeChange,
   onEnableDepth, isRemovingBg, hasDepth,
+  focusedElement, onElementFocus,
 }: Props) {
   return (
     <aside className="w-72 border-l border-zinc-800 flex flex-col bg-zinc-950 overflow-y-auto shrink-0">
@@ -337,15 +364,31 @@ export default function ControlPanel({
         {/* ── Typography ────────────────────────────────────── */}
         <div className="border-t border-zinc-800 pt-4">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Typography</p>
-          <TextStyleControl label="Title" style={titleStyle} onChange={onTitleStyleChange} />
-        </div>
-
-        <div className="border-t border-zinc-800 pt-4">
-          <TextStyleControl label="Subtitle" style={subtitleStyle} onChange={onSubtitleStyleChange} />
-        </div>
-
-        <div className="border-t border-zinc-800 pt-4">
-          <TextStyleControl label="Author" style={authorStyle} onChange={onAuthorStyleChange} />
+          {/* Element selector tabs */}
+          <div className="flex mb-4 border-b border-zinc-800">
+            {(['title', 'subtitle', 'author'] as const).map(el => (
+              <button
+                key={el}
+                onClick={() => onElementFocus(el)}
+                className={`flex-1 pb-1.5 text-[11px] capitalize transition-colors ${
+                  focusedElement === el
+                    ? 'text-zinc-100 border-b-2 border-indigo-500 -mb-px'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {el}
+              </button>
+            ))}
+          </div>
+          {focusedElement === 'title' && (
+            <TextStyleControl label="Title" style={titleStyle} onChange={onTitleStyleChange} />
+          )}
+          {focusedElement === 'subtitle' && (
+            <TextStyleControl label="Subtitle" style={subtitleStyle} onChange={onSubtitleStyleChange} />
+          )}
+          {focusedElement === 'author' && (
+            <TextStyleControl label="Author" style={authorStyle} onChange={onAuthorStyleChange} />
+          )}
         </div>
 
         {/* ── AI palette ────────────────────────────────────── */}

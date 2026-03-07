@@ -26,6 +26,7 @@ interface Props {
   onAuthorPosChange: (pos: Position) => void
   onImagePosChange: (pos: Position) => void
   onTitlePlacementSuggested?: (pos: Position) => void
+  onElementFocus?: (el: 'title' | 'subtitle' | 'author') => void
   isLoading: boolean
   exportRef: React.MutableRefObject<(() => string | null) | null>
 }
@@ -53,6 +54,7 @@ function drawWidthFillTitle(
   blockCenterY: number,
   style: TextStyle,
   noShadow: boolean | undefined,
+  shadowBlurOverride?: number,
 ): number {
   const lhMult = style.lineHeight ?? 1.05
 
@@ -88,9 +90,9 @@ function drawWidthFillTitle(
     }
 
     if (!noShadow) {
-      ctx.shadowColor = 'rgba(0,0,0,0.9)'
-      ctx.shadowBlur = Math.max(12, fs * 0.18)
-      ctx.shadowOffsetY = Math.max(2, fs * 0.03)
+      ctx.shadowColor = 'rgba(0,0,0,0.97)'
+      ctx.shadowBlur = shadowBlurOverride ?? Math.max(18, fs * 0.22)
+      ctx.shadowOffsetY = Math.max(3, fs * 0.04)
     }
     ctx.fillStyle = style.color
     ctx.fillText(words[i], centerX, y)
@@ -144,6 +146,15 @@ function drawLetterSpaced(
     x += ctx.measureText(ch).width + spacing
   }
   ctx.textAlign = savedAlign
+}
+
+/** How dark the overlay makes the image overall (0 = none, 1 = black) */
+function overlayDarkness(style: OverlayStyle): number {
+  if (style.type === 'tint') return style.opacity
+  if (style.type === 'vignette') return (style.topOpacity + style.bottomOpacity) / 2
+  if (style.type === 'band') return style.opacity * 0.55
+  if (style.type === 'solid-block') return 0.85
+  return 0
 }
 
 function drawOverlay(ctx: CanvasRenderingContext2D, style: OverlayStyle, w: number, h: number) {
@@ -280,6 +291,12 @@ function drawCover(
     ctx.restore()
   }
 
+  // How dark the overlay is determines how hard the text shadow needs to work
+  const darkness = overlayDarkness(template.overlayStyle)
+  const shadowBlur   = darkness < 0.25 ? 40 : darkness < 0.5 ? 28 : 18
+  const shadowAlpha  = darkness < 0.25 ? 0.98 : 0.95
+  const shadowOffset = darkness < 0.25 ? 4 : 3
+
   const displayTitle = template.titleTransform === 'uppercase'
     ? (title || 'YOUR BOOK TITLE').toUpperCase()
     : (title || 'Your Book Title')
@@ -287,10 +304,26 @@ function drawCover(
   const PAD = 40
   const maxW = W - PAD * 2
 
-  // Pre-compute title layout
-  ctx.font = buildFont(titleStyle, 'bold')
+  // Auto-fit: shrink font size if title wraps to more than 3 lines
+  let effectiveTitleStyle = titleStyle
+  if (!titleStyle.widthFill) {
+    ctx.font = buildFont(titleStyle, 'bold')
+    let testLines = wrapText(ctx, displayTitle, maxW)
+    if (testLines.length > 3) {
+      let autoSize = titleStyle.fontSize
+      while (testLines.length > 3 && autoSize > 28) {
+        autoSize -= 2
+        ctx.font = buildFont({ ...titleStyle, fontSize: autoSize }, 'bold')
+        testLines = wrapText(ctx, displayTitle, maxW)
+      }
+      effectiveTitleStyle = { ...titleStyle, fontSize: autoSize }
+    }
+  }
+
+  // Pre-compute title layout using effective style
+  ctx.font = buildFont(effectiveTitleStyle, 'bold')
   const titleLines = wrapText(ctx, displayTitle, maxW)
-  const titleLineH = titleStyle.fontSize * (titleStyle.lineHeight ?? 1.2)
+  const titleLineH = effectiveTitleStyle.fontSize * (effectiveTitleStyle.lineHeight ?? 1.2)
   const titleBlockH = titleLines.length * titleLineH
   const titleTop = titlePos.y - titleBlockH / 2
 
@@ -327,7 +360,7 @@ function drawCover(
   if (template.accentLines && titleLines.length > 0) {
     ctx.save()
     ctx.shadowBlur = 0
-    ctx.font = buildFont(titleStyle, 'bold')
+    ctx.font = buildFont(effectiveTitleStyle, 'bold')
     const firstW = ctx.measureText(titleLines[0]).width
     const gap = 14
     ctx.strokeStyle = template.accentLineColor ?? 'rgba(255,255,255,0.32)'
@@ -340,31 +373,31 @@ function drawCover(
   // ── Title text ──────────────────────────────────────────────────────────────
   ctx.save()
   // Apply rotation around title center
-  const titleRotRad = ((titleStyle.rotation ?? 0) * Math.PI) / 180
+  const titleRotRad = ((effectiveTitleStyle.rotation ?? 0) * Math.PI) / 180
   if (titleRotRad !== 0) {
     ctx.translate(titlePos.x, titlePos.y)
     ctx.rotate(titleRotRad)
     ctx.translate(-titlePos.x, -titlePos.y)
   }
 
-  if (titleStyle.widthFill) {
+  if (effectiveTitleStyle.widthFill) {
     // Width-fill: each word auto-sizes to fill canvas width
     const words = displayTitle.split(' ').filter(Boolean)
-    drawWidthFillTitle(ctx, words, maxW, titlePos.x, titlePos.y, titleStyle, template.noShadow)
+    drawWidthFillTitle(ctx, words, maxW, titlePos.x, titlePos.y, effectiveTitleStyle, template.noShadow, shadowBlur)
   } else {
     ctx.textAlign = template.titleAlign
     ctx.textBaseline = 'middle'
-    ctx.font = buildFont(titleStyle, 'bold')
+    ctx.font = buildFont(effectiveTitleStyle, 'bold')
 
-    if (titleStyle.strokeWidth && titleStyle.strokeWidth > 0) {
-      ctx.strokeStyle = titleStyle.strokeColor ?? '#000000'
-      ctx.lineWidth = titleStyle.strokeWidth * 2
+    if (effectiveTitleStyle.strokeWidth && effectiveTitleStyle.strokeWidth > 0) {
+      ctx.strokeStyle = effectiveTitleStyle.strokeColor ?? '#000000'
+      ctx.lineWidth = effectiveTitleStyle.strokeWidth * 2
       ctx.lineJoin = 'round'
       ctx.shadowColor = 'transparent'
       titleLines.forEach((line, i) => {
         const y = titleTop + i * titleLineH + titleLineH / 2
-        if ((titleStyle.letterSpacing ?? 0) > 0) {
-          drawLetterSpaced(ctx, line, titlePos.x, y, titleStyle.letterSpacing!, template.titleAlign)
+        if ((effectiveTitleStyle.letterSpacing ?? 0) > 0) {
+          drawLetterSpaced(ctx, line, titlePos.x, y, effectiveTitleStyle.letterSpacing!, template.titleAlign)
         } else {
           ctx.strokeText(line, titlePos.x, y)
         }
@@ -372,14 +405,14 @@ function drawCover(
     }
 
     if (!template.noShadow) {
-      ctx.shadowColor = 'rgba(0,0,0,0.95)'
-      ctx.shadowBlur = 20; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 3
+      ctx.shadowColor = `rgba(0,0,0,${shadowAlpha})`
+      ctx.shadowBlur = shadowBlur; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = shadowOffset
     }
-    ctx.fillStyle = titleStyle.color
+    ctx.fillStyle = effectiveTitleStyle.color
     titleLines.forEach((line, i) => {
       const y = titleTop + i * titleLineH + titleLineH / 2
-      if ((titleStyle.letterSpacing ?? 0) > 0) {
-        drawLetterSpaced(ctx, line, titlePos.x, y, titleStyle.letterSpacing!, template.titleAlign)
+      if ((effectiveTitleStyle.letterSpacing ?? 0) > 0) {
+        drawLetterSpaced(ctx, line, titlePos.x, y, effectiveTitleStyle.letterSpacing!, template.titleAlign)
       } else {
         ctx.fillText(line, titlePos.x, y)
       }
@@ -388,10 +421,11 @@ function drawCover(
   ctx.restore()
 
   // ── Subtitle (independent draggable element) ─────────────────────────────────
-  // Clamp to actual rendered title bottom — handles multi-line wrapping
+  // Clamp: must stay below actual title bottom AND above the author line
   const titleActualBottom = titleTop + titleBlockH
-  const subFloor = titleActualBottom + subtitleStyle.fontSize * 0.6 + 6
-  const effectiveSubtitleY = Math.max(subtitlePos.y, subFloor)
+  const subFloor   = titleActualBottom + subtitleStyle.fontSize * 0.6 + 6
+  const subCeiling = authorPos.y - subtitleStyle.fontSize - 8
+  const effectiveSubtitleY = Math.min(Math.max(subtitlePos.y, subFloor), subCeiling)
 
   if (subtitle) {
     ctx.save()
@@ -406,8 +440,9 @@ function drawCover(
     ctx.font = buildFont(subtitleStyle)
     ctx.fillStyle = subtitleStyle.color
     if (!template.noShadow) {
-      ctx.shadowColor = 'rgba(0,0,0,0.9)'
-      ctx.shadowBlur = 10
+      ctx.shadowColor = `rgba(0,0,0,${shadowAlpha})`
+      ctx.shadowBlur = shadowBlur * 0.7
+      ctx.shadowOffsetY = shadowOffset
     }
     const subSpacing = subtitleStyle.letterSpacing ?? 0
     if (subSpacing > 0) {
@@ -467,7 +502,8 @@ function drawCover(
   }
 
   if (!template.noShadow) {
-    ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2
+    ctx.shadowColor = `rgba(0,0,0,${shadowAlpha})`
+    ctx.shadowBlur = shadowBlur * 0.65; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = shadowOffset
   }
   ctx.fillStyle = authorStyle.color
   drawLetterSpaced(ctx, author || 'Author Name', authorPos.x, authorPos.y, authorStyle.letterSpacing ?? 1, template.authorAlign)
@@ -544,6 +580,7 @@ export default function CanvasEditor({
   template,
   onTitlePosChange, onSubtitlePosChange, onAuthorPosChange, onImagePosChange,
   onTitlePlacementSuggested,
+  onElementFocus,
   isLoading, exportRef,
 }: Props) {
   const canvasRef            = useRef<HTMLCanvasElement>(null)
@@ -573,6 +610,7 @@ export default function CanvasEditor({
   const templateRef       = useRef(template)
   const dragTargetRef     = useRef<'title' | 'subtitle' | 'author' | null>(null)
   const onTitlePlacementRef = useRef(onTitlePlacementSuggested)
+  const onElementFocusRef   = useRef(onElementFocus)
 
   titleRef.current          = title
   subtitleRef.current       = subtitle
@@ -588,6 +626,7 @@ export default function CanvasEditor({
   colorGradeIdRef.current   = colorGradeId
   templateRef.current       = template
   onTitlePlacementRef.current = onTitlePlacementSuggested
+  onElementFocusRef.current   = onElementFocus
 
   const redraw = useCallback(() => {
     if (!canvasRef.current) return
@@ -693,12 +732,15 @@ export default function CanvasEditor({
     if (hitTitle(x, y)) {
       dragRef.current = { obj: 'title', startX: x, startY: y, objStartX: titlePosRef.current.x, objStartY: titlePosRef.current.y }
       dragTargetRef.current = 'title'
+      onElementFocusRef.current?.('title')
     } else if (hitSubtitle(x, y)) {
       dragRef.current = { obj: 'subtitle', startX: x, startY: y, objStartX: subtitlePosRef.current.x, objStartY: subtitlePosRef.current.y }
       dragTargetRef.current = 'subtitle'
+      onElementFocusRef.current?.('subtitle')
     } else if (hitAuthor(x, y)) {
       dragRef.current = { obj: 'author', startX: x, startY: y, objStartX: authorPosRef.current.x, objStartY: authorPosRef.current.y }
       dragTargetRef.current = 'author'
+      onElementFocusRef.current?.('author')
     } else if (bgImageRef.current) {
       dragRef.current = { obj: 'image', startX: x, startY: y, objStartX: imagePosRef.current.x, objStartY: imagePosRef.current.y }
     }
