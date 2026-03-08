@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import DescriptionPanel from '@/components/DescriptionPanel'
 import ControlPanel from '@/components/ControlPanel'
@@ -79,6 +79,16 @@ export default function Home() {
   const [focusedElement, setFocusedElement] = useState<'title' | 'subtitle' | 'author'>('title')
 
   const exportFnRef = useRef<((scale?: number) => string | null) | null>(null)
+
+  // Auto-refresh the mockup snapshot whenever the active template changes in 3D preview mode
+  useEffect(() => {
+    if (!showMockup) return
+    const id = setTimeout(() => {
+      setMockupDataUrl(exportFnRef.current?.() ?? null)
+    }, 80)
+    return () => clearTimeout(id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTemplate, showMockup])
 
   // The image shown on canvas: prefer uploaded over generated
   const imageUrl = uploadedImageUrl ?? generatedImageUrl
@@ -271,6 +281,13 @@ export default function Home() {
     }
   }
 
+  const navigateMockupTemplate = (dir: 1 | -1) => {
+    const currentIdx = TEMPLATES.findIndex(t => t.id === activeTemplate.id)
+    const from = currentIdx === -1 ? 0 : currentIdx
+    const nextIdx = (from + dir + TEMPLATES.length) % TEMPLATES.length
+    handleApplyTemplate(TEMPLATES[nextIdx])
+  }
+
   const handleExport = (scale = 1) => {
     const dataUrl = exportFnRef.current?.(scale)
     if (!dataUrl) return
@@ -348,48 +365,69 @@ export default function Home() {
 
           {/* ── 3D book mockup — snapshot of the live canvas ── */}
           {showMockup && (
-            <div style={{ perspective: '1800px' }}>
-              <div style={{
-                display: 'flex',
-                transform: 'rotateY(-28deg) rotateX(3deg)',
-                filter: 'drop-shadow(40px 50px 70px rgba(0,0,0,0.85))',
-                transformOrigin: 'center center',
-              }}>
-                {/* Spine */}
+            <div className="flex flex-col items-center gap-6">
+              <div style={{ perspective: '1800px' }}>
                 <div style={{
-                  width: SPINE_W,
-                  height: CANVAS_H,
-                  background: 'linear-gradient(to right, #06060e, #111120)',
-                  flexShrink: 0,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
+                  transform: 'rotateY(-28deg) rotateX(3deg)',
+                  filter: 'drop-shadow(40px 50px 70px rgba(0,0,0,0.85))',
+                  transformOrigin: 'center center',
                 }}>
-                  <span style={{
-                    writingMode: 'vertical-lr',
-                    transform: 'rotate(180deg)',
-                    fontSize: 11,
-                    letterSpacing: '0.08em',
-                    color: 'rgba(255,255,255,0.35)',
-                    fontFamily: activeTemplate.titleStyle.fontFamily,
-                    whiteSpace: 'nowrap',
-                    maxHeight: CANVAS_H - 40,
+                  {/* Spine */}
+                  <div style={{
+                    width: SPINE_W,
+                    height: CANVAS_H,
+                    background: 'linear-gradient(to right, #06060e, #111120)',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     overflow: 'hidden',
-                    textOverflow: 'ellipsis',
                   }}>
-                    {bookInfo.title}{bookInfo.author ? ` · ${bookInfo.author}` : ''}
-                  </span>
+                    <span style={{
+                      writingMode: 'vertical-lr',
+                      transform: 'rotate(180deg)',
+                      fontSize: 11,
+                      letterSpacing: '0.08em',
+                      color: 'rgba(255,255,255,0.35)',
+                      fontFamily: activeTemplate.titleStyle.fontFamily,
+                      whiteSpace: 'nowrap',
+                      maxHeight: CANVAS_H - 40,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {bookInfo.title}{bookInfo.author ? ` · ${bookInfo.author}` : ''}
+                    </span>
+                  </div>
+                  {mockupDataUrl && (
+                    <img
+                      src={mockupDataUrl}
+                      width={CANVAS_W}
+                      height={CANVAS_H}
+                      alt="Book cover preview"
+                      style={{ display: 'block' }}
+                    />
+                  )}
                 </div>
-                {mockupDataUrl && (
-                  <img
-                    src={mockupDataUrl}
-                    width={CANVAS_W}
-                    height={CANVAS_H}
-                    alt="Book cover preview"
-                    style={{ display: 'block' }}
-                  />
-                )}
+              </div>
+
+              {/* Template navigation */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigateMockupTemplate(-1)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+                >
+                  ‹
+                </button>
+                <span className="text-xs text-zinc-400 w-20 text-center tracking-widest uppercase">
+                  {activeTemplate.name}
+                </span>
+                <button
+                  onClick={() => navigateMockupTemplate(1)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+                >
+                  ›
+                </button>
               </div>
             </div>
           )}

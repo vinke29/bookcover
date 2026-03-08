@@ -267,12 +267,22 @@ function drawCover(
   const grade = COLOR_GRADES.find(g => g.id === colorGradeId) ?? COLOR_GRADES[0]
 
   if (bgImage) {
-    const baseScale = Math.max(W / bgImage.naturalWidth, H / bgImage.naturalHeight)
+    // For solid-block (e.g. Bold): scale image to fit the visible area only and anchor to top,
+    // so the subject is never hidden behind the block.
+    let imgRefH = H
+    let anchorTop = false
+    if (template.overlayStyle.type === 'solid-block' && template.overlayStyle.position === 'bottom') {
+      imgRefH = H * (1 - template.overlayStyle.heightRatio)
+      anchorTop = true
+    }
+    const baseScale = Math.max(W / bgImage.naturalWidth, imgRefH / bgImage.naturalHeight)
     const s = baseScale * imageScale
     const w = bgImage.naturalWidth * s, h = bgImage.naturalHeight * s
+    const dx = (W - w) / 2 + imagePos.x
+    const dy = anchorTop ? imagePos.y : (H - h) / 2 + imagePos.y
     ctx.save()
     if (grade.filter !== 'none') ctx.filter = grade.filter
-    ctx.drawImage(bgImage, (W - w) / 2 + imagePos.x, (H - h) / 2 + imagePos.y, w, h)
+    ctx.drawImage(bgImage, dx, dy, w, h)
     ctx.restore()
   }
 
