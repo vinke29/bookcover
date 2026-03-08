@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'FAL_KEY not set' }, { status: 500 })
     }
 
-    const res = await fetch('https://fal.run/fal-ai/flux/schnell', {
+    const res = await fetch('https://fal.run/fal-ai/flux/dev', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -17,9 +17,10 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         prompt,
-        image_size: { width: 768, height: 1024 },
+        image_size: { width: 768, height: 1152 },
         num_images: 1,
-        num_inference_steps: 4,
+        num_inference_steps: 28,
+        guidance_scale: 3.5,
       }),
     })
 
