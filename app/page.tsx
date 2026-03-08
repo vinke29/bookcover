@@ -73,6 +73,7 @@ export default function Home() {
 
   // 3D mockup preview
   const [showMockup, setShowMockup] = useState(false)
+  const [mockupDataUrl, setMockupDataUrl] = useState<string | null>(null)
 
   // Which text element is focused in the right panel
   const [focusedElement, setFocusedElement] = useState<'title' | 'subtitle' | 'author'>('title')
@@ -192,6 +193,13 @@ export default function Home() {
         // Auto-apply the AI-designed layout
         const layout = conceptData.customLayout
 
+        // Disable widthFill for titles with 4+ words — each word fills the canvas
+        // width, so long titles create a stack too tall to fit.
+        const wordCount = (bookInfo.title || '').trim().split(/\s+/).filter(Boolean).length
+        if (wordCount >= 4) {
+          layout.titleWidthFill = false
+        }
+
         // Cap overlay opacity so the AI can never produce a completely black cover.
         // Max tint: 0.65, max vignette channel: 0.88 (vigettes are naturally lighter at center).
         const MAX_TINT = 0.65
@@ -279,7 +287,13 @@ export default function Home() {
         <span className="text-sm text-zinc-500">AI Book Cover Designer</span>
         <div className="ml-auto">
           <button
-            onClick={() => setShowMockup(v => !v)}
+            onClick={() => {
+              if (!showMockup) {
+                const dataUrl = exportFnRef.current?.() ?? null
+                setMockupDataUrl(dataUrl)
+              }
+              setShowMockup(v => !v)
+            }}
             disabled={!imageUrl}
             className="px-3 py-1.5 text-xs rounded-md border transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             style={showMockup
@@ -338,34 +352,16 @@ export default function Home() {
                     {bookInfo.title}{bookInfo.author ? ` · ${bookInfo.author}` : ''}
                   </span>
                 </div>
-                {/* Cover — pointer events off so no accidental edits */}
-                <div style={{ pointerEvents: 'none' }}>
-                  <CanvasEditor
-                    imageUrl={imageUrl}
-                    fgImageUrl={fgImageUrl}
-                    title={bookInfo.title}
-                    subtitle={bookInfo.subtitle}
-                    author={bookInfo.author}
-                    titleStyle={titleStyle}
-                    subtitleStyle={subtitleStyle}
-                    authorStyle={authorStyle}
-                    titlePos={titlePos}
-                    subtitlePos={subtitlePos}
-                    authorPos={authorPos}
-                    imagePos={imagePos}
-                    imageScale={imageScale}
-                    colorGradeId={colorGradeId}
-                    template={activeTemplate}
-                    onTitlePosChange={setTitlePos}
-                    onSubtitlePosChange={setSubtitlePos}
-                    onAuthorPosChange={setAuthorPos}
-                    onImagePosChange={setImagePos}
-                    onTitlePlacementSuggested={handleTitlePlacementSuggested}
-                    onElementFocus={setFocusedElement}
-                    isLoading={isGenerating}
-                    exportRef={exportFnRef}
+                {/* Cover — snapshot of the live canvas, no re-load needed */}
+                {mockupDataUrl && (
+                  <img
+                    src={mockupDataUrl}
+                    width={CANVAS_W}
+                    height={CANVAS_H}
+                    alt="Book cover preview"
+                    style={{ display: 'block' }}
                   />
-                </div>
+                )}
               </div>
             </div>
           ) : (
