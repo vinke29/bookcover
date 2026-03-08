@@ -211,9 +211,9 @@ export default function Home() {
         }
 
         // Cap overlay opacity so the AI can never produce a completely black cover.
-        // Max tint: 0.65, max vignette channel: 0.88 (vigettes are naturally lighter at center).
-        const MAX_TINT = 0.65
-        const MAX_VIGNETTE = 0.88
+        // Max tint: 0.42, max vignette channel: 0.65 (vigettes are naturally lighter at center).
+        const MAX_TINT = 0.42
+        const MAX_VIGNETTE = 0.65
         if (layout.overlay.type === 'tint' && layout.overlay.opacity > MAX_TINT) {
           layout.overlay = { ...layout.overlay, opacity: MAX_TINT }
         } else if (layout.overlay.type === 'vignette') {

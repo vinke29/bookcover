@@ -345,6 +345,30 @@ function drawCover(
     }
   }
 
+  // For solid-block templates (e.g. Bold), also ensure title fits vertically inside the block.
+  if (template.overlayStyle.type === 'solid-block' && !effectiveTitleStyle.widthFill) {
+    const blockTop = template.overlayStyle.position === 'bottom'
+      ? H * (1 - template.overlayStyle.heightRatio)
+      : 0
+    const authorReserve = authorStyle.fontSize + 20
+    const maxTitleH = (authorPos.y - authorReserve) - (blockTop + 8)
+    if (maxTitleH > 0) {
+      ctx.font = buildFont(effectiveTitleStyle, 'bold')
+      let solidLines = wrapText(ctx, displayTitle, maxW)
+      let solidBlockH = solidLines.length * effectiveTitleStyle.fontSize * (effectiveTitleStyle.lineHeight ?? 1.2)
+      if (solidBlockH > maxTitleH) {
+        let autoSize = effectiveTitleStyle.fontSize
+        while (solidBlockH > maxTitleH && autoSize > 20) {
+          autoSize -= 2
+          ctx.font = buildFont({ ...effectiveTitleStyle, fontSize: autoSize }, 'bold')
+          solidLines = wrapText(ctx, displayTitle, maxW)
+          solidBlockH = solidLines.length * autoSize * (effectiveTitleStyle.lineHeight ?? 1.2)
+        }
+        effectiveTitleStyle = { ...effectiveTitleStyle, fontSize: autoSize }
+      }
+    }
+  }
+
   // Pre-compute title layout using effective style
   ctx.font = buildFont(effectiveTitleStyle, 'bold')
   const titleLines = wrapText(ctx, displayTitle, maxW)
