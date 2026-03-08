@@ -348,10 +348,14 @@ function drawCover(
     // Compute the effective subtitle Y now so backdrop can cover it
     const subFloorForBackdrop = titleTop + titleBlockH + subtitleStyle.fontSize * 0.6 + 6
     const effSubForBackdrop = Math.max(subtitlePos.y, subFloorForBackdrop)
+    // Use a pre-estimate of author Y (same clamping logic, pre-drawing)
+    const subRoomBd = subtitle ? subtitleStyle.fontSize * 1.5 + 10 : 10
+    const minAuthorYBd = titleTop + titleBlockH + subRoomBd + authorStyle.fontSize
+    const estAuthorY = Math.min(Math.max(authorPos.y, minAuthorYBd), H - 8)
     const textRegionBottom = Math.max(
       titleTop + titleBlockH,
       subtitle ? effSubForBackdrop + subtitleStyle.fontSize * 0.65 : 0,
-      authorPos.y + authorStyle.fontSize * 0.7,
+      estAuthorY + authorStyle.fontSize * 0.7,
     )
     ctx.save()
     ctx.fillStyle = `rgba(0,0,0,${template.textBackdrop.opacity})`
@@ -447,11 +451,17 @@ function drawCover(
   }
   ctx.restore()
 
-  // ── Subtitle (independent draggable element) ─────────────────────────────────
-  // Clamp: must stay below actual title bottom AND above the author line
+  // ── Subtitle / Author clamping ───────────────────────────────────────────────
   const titleActualBottom = effectiveTitleStyle.widthFill ? widthFillBottomY : titleTop + titleBlockH
+
+  // Clamp author so it never overlaps the title block.
+  // Reserve space for subtitle if one exists.
+  const subtitleRoom = subtitle ? subtitleStyle.fontSize * 1.5 + 10 : 10
+  const minAuthorY = titleActualBottom + subtitleRoom + authorStyle.fontSize
+  const effectiveAuthorY = Math.min(Math.max(authorPos.y, minAuthorY), H - 8)
+
   const subFloor   = titleActualBottom + subtitleStyle.fontSize * 0.6 + 6
-  const subCeiling = authorPos.y - subtitleStyle.fontSize - 8
+  const subCeiling = effectiveAuthorY - subtitleStyle.fontSize - 8
   // When there's no room between title and author, keep subtitle below the title
   // (may nudge into the author gap) rather than letting it fall above the title
   const effectiveSubtitleY = subCeiling >= subFloor
@@ -496,7 +506,7 @@ function drawCover(
 
   // ── Divider ─────────────────────────────────────────────────────────────────
   if (template.showDivider) {
-    const divY = titlePos.y + titleBlockH / 2 + (authorPos.y - (titlePos.y + titleBlockH / 2)) * 0.45
+    const divY = titlePos.y + titleBlockH / 2 + (effectiveAuthorY - (titlePos.y + titleBlockH / 2)) * 0.45
     const divColor = template.noShadow ? 'rgba(60,60,70,0.5)' : 'rgba(255,255,255,0.28)'
     ctx.save()
     ctx.shadowBlur = 0
@@ -529,7 +539,7 @@ function drawCover(
     ctx.lineWidth = authorStyle.strokeWidth * 2
     ctx.lineJoin = 'round'
     ctx.shadowColor = 'transparent'
-    ctx.strokeText(author || 'Author Name', authorPos.x, authorPos.y)
+    ctx.strokeText(author || 'Author Name', authorPos.x, effectiveAuthorY)
   }
 
   if (!template.noShadow) {
@@ -537,7 +547,7 @@ function drawCover(
     ctx.shadowBlur = shadowBlur * 0.65; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = shadowOffset
   }
   ctx.fillStyle = authorStyle.color
-  drawLetterSpaced(ctx, author || 'Author Name', authorPos.x, authorPos.y, authorStyle.letterSpacing ?? 1, template.authorAlign)
+  drawLetterSpaced(ctx, author || 'Author Name', authorPos.x, effectiveAuthorY, authorStyle.letterSpacing ?? 1, template.authorAlign)
   ctx.restore()
 
   // ── Drag selection indicator ─────────────────────────────────────────────────
@@ -557,7 +567,7 @@ function drawCover(
       ctx.font = buildFont(authorStyle)
       const aw = ctx.measureText(author || 'Author Name').width + 40
       const ah = authorStyle.fontSize + 16
-      roundRect(ctx, authorPos.x - aw / 2, authorPos.y - ah / 2, aw, ah, 3)
+      roundRect(ctx, authorPos.x - aw / 2, effectiveAuthorY - ah / 2, aw, ah, 3)
     }
     ctx.stroke()
     ctx.restore()
