@@ -37,7 +37,8 @@ Good romance example: overlay {"type":"tint","opacity":0.06}, titleFont "Dancing
 
 RULE 2 — TEXT-HERO genres (literary fiction, upmarket fiction, book club fiction):
 The overlay darkens the image so it reads as texture behind the title. overlay opacity 0.45–0.62. Title 84–108px bold serif, centered, titleYPercent 44–52. titleWidthFill false. The title IS the visual weight of the entire cover.
-Good literary example: overlay {"type":"tint","opacity":0.52}, titleFont "Playfair Display", titleSize 96, titleItalic false, titleWidthFill false
+CRITICAL COLOR RULE FOR TEXT-HERO: titleColor MUST be "#ffffff" (pure white). NEVER use teal, blue, gold, gray, or any color that could blend with the artwork — even with a 50% tint the image is still visible and a colored title will camouflage. authorColor should be "rgba(255,255,255,0.78)".
+Good literary example: overlay {"type":"tint","opacity":0.52}, titleFont "Playfair Display", titleSize 96, titleItalic false, titleWidthFill false, titleColor "#ffffff", authorColor "rgba(255,255,255,0.78)"
 
 RULE 3 — BOLD STACKED genres (commercial fiction, feel-good, rom-com, beach reads with simple illustration):
 Use titleWidthFill: true — each word auto-sizes to fill the full canvas width, stacked like "The Seven Year Slip". overlay 0.05–0.20. Large bold sans or display font. titleYPercent 45–60.
@@ -86,6 +87,9 @@ customLayout fields (ALL required):
 - border: null or {"padding":14,"color":"rgba(245,230,200,0.45)","lineWidth":1}
 - textBackdrop: null or {"opacity":0.5,"padding":16}
 - noShadow: boolean (ONLY true for solid-block with dark text on light bg)
+
+GLOBAL COLOR LAW — applies to every genre, every layout:
+titleColor MUST be "#ffffff" for ANY overlay type except solid-block. This is non-negotiable. Teal, blue, gold, rose, sage, slate — all invisible against artwork. White is the only color that is always readable. The only exception: solid-block layouts where the text sits on a solid panel (use dark text there).
 
 Return only valid JSON with no markdown or code fences.`
 

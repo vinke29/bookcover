@@ -226,18 +226,13 @@ export default function Home() {
 
         const aiTemplate = customLayoutToTemplate(layout)
 
-        // For light overlays, enforce white — any other color risks blending into
-        // a colorful image. White + strong drop shadow is the professional standard.
-        const overlayOpacity =
-          layout.overlay.type === 'tint' ? layout.overlay.opacity
-          : layout.overlay.type === 'none' ? 0
-          : layout.overlay.type === 'vignette'
-            ? (layout.overlay.topOpacity + layout.overlay.bottomOpacity) / 2
-          : 0.5
-        const safeTitleColor = overlayOpacity < 0.25 ? '#ffffff' : layout.titleColor
-        const safeAuthorColor = overlayOpacity < 0.25
-          ? 'rgba(255,255,255,0.80)'
-          : layout.authorColor
+        // Always use white for any overlay type that doesn't provide a solid background.
+        // Colored text against a photographic/illustrated image almost always fails —
+        // the AI will pick palette-matching colors that blend right into the art.
+        // Only solid-block has a known solid color background where the AI color is safe.
+        const isSolidBlock = layout.overlay.type === 'solid-block'
+        const safeTitleColor = isSolidBlock ? layout.titleColor : '#ffffff'
+        const safeAuthorColor = isSolidBlock ? layout.authorColor : 'rgba(255,255,255,0.78)'
 
         setActiveTemplate(aiTemplate)
         setTitleStyle({ ...aiTemplate.titleStyle, color: safeTitleColor })
