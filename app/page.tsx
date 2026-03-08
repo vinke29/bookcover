@@ -462,7 +462,7 @@ export default function Home() {
                         {/* Individual page lines — vary along depth axis so they appear vertical from viewer */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'repeating-linear-gradient(to right, #faf8f4 0px, #faf8f4 2px, #ddd6c8 2px, #ddd6c8 4px)',
+                          background: 'repeating-linear-gradient(to left, #faf8f4 0px, #faf8f4 2px, #ddd6c8 2px, #ddd6c8 4px)',
                         }} />
                         {/* Depth shading: dark at cover edge (right/z=0), bright at outer edge (left/z=depth) */}
                         <div style={{
