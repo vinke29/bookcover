@@ -76,7 +76,7 @@ export default function Home() {
   const [showMockup, setShowMockup] = useState(false)
   const [mockupDataUrl, setMockupDataUrl] = useState<string | null>(null)
   const [mockupRot, setMockupRot] = useState({ x: 4, y: -28 })
-  const mockupDragRef = useRef<{ startX: number; startY: number; rotX: number; rotY: number } | null>(null)
+  const [isMockupDragging, setIsMockupDragging] = useState(false)
 
   // Which text element is focused in the right panel
   const [focusedElement, setFocusedElement] = useState<'title' | 'subtitle' | 'author'>('title')
@@ -362,155 +362,145 @@ export default function Home() {
             />
           </div>
 
-          {/* ── 3D book mockup — proper CSS 3D box ── */}
-          {showMockup && (
-            <div className="flex flex-col items-center gap-6">
-              {/* 3D stage — scaled to 62% so it fits the screen */}
-              <div
-                style={{
-                  width: CANVAS_W * 0.62,
-                  height: CANVAS_H * 0.62,
-                  position: 'relative',
-                  flexShrink: 0,
-                  cursor: mockupDragRef.current ? 'grabbing' : 'grab',
-                }}
-                onMouseDown={e => {
-                  mockupDragRef.current = { startX: e.clientX, startY: e.clientY, rotX: mockupRot.x, rotY: mockupRot.y }
-                }}
-                onMouseMove={e => {
-                  if (!mockupDragRef.current) return
-                  const dx = e.clientX - mockupDragRef.current.startX
-                  const dy = e.clientY - mockupDragRef.current.startY
-                  setMockupRot({
-                    x: Math.max(-40, Math.min(40, mockupDragRef.current.rotX - dy * 0.35)),
-                    y: Math.max(-70, Math.min(70, mockupDragRef.current.rotY + dx * 0.35)),
-                  })
-                }}
-                onMouseUp={() => { mockupDragRef.current = null }}
-                onMouseLeave={() => { mockupDragRef.current = null }}
-              >
-                <div style={{
-                  position: 'absolute', top: 0, left: 0,
-                  transformOrigin: 'top left',
-                  transform: 'scale(0.62)',
-                  width: CANVAS_W, height: CANVAS_H,
-                }}>
-              <div style={{ perspective: '1100px', perspectiveOrigin: '50% 45%' }}>
-                <div style={{
-                  position: 'relative',
-                  width: CANVAS_W,
-                  height: CANVAS_H,
-                  transformStyle: 'preserve-3d',
-                  transform: `rotateX(${mockupRot.x}deg) rotateY(${mockupRot.y}deg)`,
-                  filter: 'drop-shadow(20px 36px 52px rgba(0,0,0,0.92))',
-                }}>
-                  {/* ── Spine — left face, rotated 90° around left edge ── */}
-                  <div style={{
-                    position: 'absolute', top: 0, left: 0,
-                    width: SPINE_W, height: CANVAS_H,
-                    transformOrigin: 'left center',
-                    transform: 'rotateY(90deg)',
-                    background: activeTemplate.overlayStyle.type === 'solid-block'
-                      ? activeTemplate.overlayStyle.color
-                      : '#0a0a14',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    overflow: 'hidden',
-                  }}>
-                    {/* Depth shading — darker at hinge, lighter at outer edge */}
+          {/* ── 3D book mockup ── */}
+          {showMockup && (() => {
+            // Scale all dimensions directly — never wrap with transform:scale()
+            // because that creates a new stacking context and breaks preserve-3d.
+            const S = 0.62
+            const mW = Math.round(CANVAS_W * S)   // 310
+            const mH = Math.round(CANVAS_H * S)   // 465
+            const mSpine = Math.round(SPINE_W * S) // 30
+            const mPage  = Math.round(PAGE_W  * S) // 11
+            const spineIsSolid = activeTemplate.overlayStyle.type === 'solid-block'
+            const spineBg   = spineIsSolid ? (activeTemplate.overlayStyle as { color: string }).color : '#0a0a14'
+            const spineText = spineIsSolid ? activeTemplate.titleStyle.color : 'rgba(255,255,255,0.52)'
+
+            const startDrag = (e: React.MouseEvent) => {
+              e.preventDefault()
+              const start = { x: e.clientX, y: e.clientY, rotX: mockupRot.x, rotY: mockupRot.y }
+              setIsMockupDragging(true)
+              const onMove = (ev: MouseEvent) => {
+                const dx = ev.clientX - start.x
+                const dy = ev.clientY - start.y
+                setMockupRot({
+                  x: Math.max(-40, Math.min(40,  start.rotX - dy * 0.4)),
+                  y: Math.max(-70, Math.min(70,  start.rotY + dx * 0.4)),
+                })
+              }
+              const onUp = () => {
+                setIsMockupDragging(false)
+                window.removeEventListener('mousemove', onMove)
+                window.removeEventListener('mouseup', onUp)
+              }
+              window.addEventListener('mousemove', onMove)
+              window.addEventListener('mouseup', onUp)
+            }
+
+            return (
+              <div className="flex flex-col items-center gap-6">
+                {/* Drag target wraps only the visual book */}
+                <div
+                  style={{ cursor: isMockupDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
+                  onMouseDown={startDrag}
+                >
+                  <div style={{ perspective: `${Math.round(1100 * S)}px`, perspectiveOrigin: '50% 45%' }}>
                     <div style={{
-                      position: 'absolute', inset: 0,
-                      background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.12) 55%, rgba(255,255,255,0.06) 100%)',
-                      pointerEvents: 'none',
-                    }} />
-                    <span style={{
-                      writingMode: 'vertical-rl',
-                      transform: 'rotate(180deg)',
-                      fontSize: 11,
-                      letterSpacing: '0.09em',
-                      color: activeTemplate.overlayStyle.type === 'solid-block'
-                        ? activeTemplate.titleStyle.color
-                        : 'rgba(255,255,255,0.50)',
-                      fontFamily: activeTemplate.titleStyle.fontFamily,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      position: 'relative', zIndex: 1,
-                      padding: '0 4px',
+                      position: 'relative', width: mW, height: mH,
+                      transformStyle: 'preserve-3d',
+                      transform: `rotateX(${mockupRot.x}deg) rotateY(${mockupRot.y}deg)`,
+                      filter: 'drop-shadow(12px 22px 32px rgba(0,0,0,0.92))',
                     }}>
-                      {bookInfo.title}{bookInfo.author ? ` · ${bookInfo.author}` : ''}
-                    </span>
-                  </div>
 
-                  {/* ── Front cover ── */}
-                  {mockupDataUrl && (
-                    <img
-                      src={mockupDataUrl}
-                      width={CANVAS_W}
-                      height={CANVAS_H}
-                      alt="Book cover"
-                      style={{ position: 'absolute', inset: 0, display: 'block' }}
-                    />
-                  )}
-                  {/* Lighting — shadow falls toward spine (left edge) */}
-                  <div style={{
-                    position: 'absolute', inset: 0, pointerEvents: 'none',
-                    background: 'linear-gradient(to right, rgba(0,0,0,0.24) 0%, transparent 30%)',
-                  }} />
+                      {/* ── Spine — left face ── */}
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0,
+                        width: mSpine, height: mH,
+                        transformOrigin: 'left center',
+                        transform: 'rotateY(90deg)',
+                        background: spineBg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.10) 55%, rgba(255,255,255,0.06) 100%)',
+                        }} />
+                        <span style={{
+                          writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+                          fontSize: 7, letterSpacing: '0.09em', color: spineText,
+                          fontFamily: activeTemplate.titleStyle.fontFamily,
+                          whiteSpace: 'nowrap', overflow: 'hidden',
+                          position: 'relative', zIndex: 1, padding: '0 3px',
+                        }}>
+                          {bookInfo.title}{bookInfo.author ? ` · ${bookInfo.author}` : ''}
+                        </span>
+                      </div>
 
-                  {/* ── Page edge — right face, rotated −90° around right edge ── */}
-                  <div style={{
-                    position: 'absolute', top: 0, right: 0,
-                    width: PAGE_W, height: CANVAS_H,
-                    transformOrigin: 'right center',
-                    transform: 'rotateY(-90deg)',
-                    overflow: 'hidden',
-                  }}>
-                    {/* Stacked-pages texture */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      background: 'repeating-linear-gradient(to bottom, #e9e4dc 0px, #e9e4dc 1px, #eee9e1 1px, #eee9e1 3px)',
-                    }} />
-                    {/* Shading — darker at spine side, lighter at outer edge */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      background: 'linear-gradient(to right, #aca89f, #d8d4cc 55%, #e4e0d8)',
-                    }} />
+                      {/* ── Front cover ── */}
+                      {mockupDataUrl && (
+                        <img src={mockupDataUrl} alt="Book cover" style={{
+                          position: 'absolute', inset: 0, display: 'block',
+                          width: mW, height: mH,
+                        }} />
+                      )}
+                      {/* Lighting — shadow toward spine */}
+                      <div style={{
+                        position: 'absolute', inset: 0, pointerEvents: 'none',
+                        background: 'linear-gradient(to right, rgba(0,0,0,0.22) 0%, transparent 30%)',
+                      }} />
+
+                      {/* ── Page edge — right face ── */}
+                      <div style={{
+                        position: 'absolute', top: 0, right: 0,
+                        width: mPage, height: mH,
+                        transformOrigin: 'right center',
+                        transform: 'rotateY(-90deg)',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'repeating-linear-gradient(to bottom, #e9e4dc 0px, #e9e4dc 1px, #eee9e1 1px, #eee9e1 3px)',
+                        }} />
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to right, #aca89f, #d8d4cc 55%, #e4e0d8)',
+                        }} />
+                      </div>
+
+                    </div>
                   </div>
                 </div>
-              </div>
-                </div> {/* scale(0.62) inner */}
-              </div> {/* outer sized wrapper */}
 
-              {/* Template navigation */}
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigateMockupTemplate(-1)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
-                >‹</button>
-                <span className="text-xs text-zinc-400 w-20 text-center tracking-widest uppercase">
-                  {activeTemplate.name}
-                </span>
-                <button
-                  onClick={() => navigateMockupTemplate(1)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
-                >›</button>
-              </div>
+                {/* Template navigation */}
+                <div className="flex items-center gap-4">
+                  <button onClick={() => navigateMockupTemplate(-1)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+                  >‹</button>
+                  <span className="text-xs text-zinc-400 w-20 text-center tracking-widest uppercase">
+                    {activeTemplate.name}
+                  </span>
+                  <button onClick={() => navigateMockupTemplate(1)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+                  >›</button>
+                </div>
 
-              {/* Sync snapshot + hint */}
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  onClick={() => setMockupDataUrl(exportFnRef.current?.() ?? null)}
-                  className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 4v6h6M23 20v-6h-6" />
-                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" />
-                  </svg>
-                  Sync from canvas
-                </button>
-                <span className="text-[10px] text-zinc-600">Drag to rotate · syncs latest edits</span>
+                {/* Sync snapshot */}
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    onClick={() => setMockupDataUrl(exportFnRef.current?.() ?? null)}
+                    className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 4v6h6M23 20v-6h-6" />
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                    </svg>
+                    Sync from canvas
+                  </button>
+                  <span className="text-[10px] text-zinc-600">Drag to rotate · syncs latest edits</span>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
         </main>
 
         <ControlPanel
