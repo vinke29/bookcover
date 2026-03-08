@@ -403,12 +403,12 @@ export default function Home() {
                   style={{ cursor: isMockupDragging ? 'grabbing' : 'grab', userSelect: 'none' }}
                   onMouseDown={startDrag}
                 >
-                  <div style={{ perspective: `${Math.round(1100 * S)}px`, perspectiveOrigin: '50% 45%' }}>
+                  <div style={{ perspective: `${Math.round(1100 * S)}px`, perspectiveOrigin: '50% 45%',
+                    filter: 'drop-shadow(12px 22px 32px rgba(0,0,0,0.92))' }}>
                     <div style={{
                       position: 'relative', width: mW, height: mH,
                       transformStyle: 'preserve-3d',
                       transform: `rotateX(${mockupRot.x}deg) rotateY(${mockupRot.y}deg)`,
-                      filter: 'drop-shadow(12px 22px 32px rgba(0,0,0,0.92))',
                     }}>
 
                       {/* ── Spine — left face ── */}
