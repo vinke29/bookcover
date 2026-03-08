@@ -8,6 +8,7 @@ import type { BookInfo, CoverConcept, TextStyle, Position, Template, OverlayStyl
 import { TEMPLATES, CANVAS_W, CANVAS_H, customLayoutToTemplate } from '@/lib/templates'
 
 const SPINE_W = 48
+const PAGE_W  = 18  // visible page-edge thickness
 
 const CanvasEditor = dynamic(() => import('@/components/CanvasEditor'), { ssr: false })
 
@@ -358,51 +359,90 @@ export default function Home() {
             />
           </div>
 
-          {/* ── 3D book mockup — snapshot of the live canvas ── */}
+          {/* ── 3D book mockup — proper CSS 3D box ── */}
           {showMockup && (
             <div className="flex flex-col items-center gap-6">
-              <div style={{ perspective: '1800px' }}>
+              {/* 3D stage */}
+              <div style={{ perspective: '1100px', perspectiveOrigin: '50% 45%' }}>
                 <div style={{
-                  display: 'flex',
-                  transform: 'rotateY(-28deg) rotateX(3deg)',
-                  filter: 'drop-shadow(40px 50px 70px rgba(0,0,0,0.85))',
-                  transformOrigin: 'center center',
+                  position: 'relative',
+                  width: CANVAS_W,
+                  height: CANVAS_H,
+                  transformStyle: 'preserve-3d',
+                  transform: 'rotateX(4deg) rotateY(-28deg)',
+                  filter: 'drop-shadow(20px 36px 52px rgba(0,0,0,0.92))',
                 }}>
-                  {/* Spine */}
+                  {/* ── Spine — left face, rotated 90° around left edge ── */}
                   <div style={{
-                    width: SPINE_W,
-                    height: CANVAS_H,
-                    background: 'linear-gradient(to right, #06060e, #111120)',
-                    flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    position: 'absolute', top: 0, left: 0,
+                    width: SPINE_W, height: CANVAS_H,
+                    transformOrigin: 'left center',
+                    transform: 'rotateY(90deg)',
+                    background: activeTemplate.overlayStyle.type === 'solid-block'
+                      ? activeTemplate.overlayStyle.color
+                      : '#0a0a14',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     overflow: 'hidden',
                   }}>
+                    {/* Depth shading — darker at hinge, lighter at outer edge */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.12) 55%, rgba(255,255,255,0.06) 100%)',
+                      pointerEvents: 'none',
+                    }} />
                     <span style={{
-                      writingMode: 'vertical-lr',
+                      writingMode: 'vertical-rl',
                       transform: 'rotate(180deg)',
                       fontSize: 11,
-                      letterSpacing: '0.08em',
-                      color: 'rgba(255,255,255,0.35)',
+                      letterSpacing: '0.09em',
+                      color: activeTemplate.overlayStyle.type === 'solid-block'
+                        ? activeTemplate.titleStyle.color
+                        : 'rgba(255,255,255,0.50)',
                       fontFamily: activeTemplate.titleStyle.fontFamily,
                       whiteSpace: 'nowrap',
-                      maxHeight: CANVAS_H - 40,
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      position: 'relative', zIndex: 1,
+                      padding: '0 4px',
                     }}>
                       {bookInfo.title}{bookInfo.author ? ` · ${bookInfo.author}` : ''}
                     </span>
                   </div>
+
+                  {/* ── Front cover ── */}
                   {mockupDataUrl && (
                     <img
                       src={mockupDataUrl}
                       width={CANVAS_W}
                       height={CANVAS_H}
-                      alt="Book cover preview"
-                      style={{ display: 'block' }}
+                      alt="Book cover"
+                      style={{ position: 'absolute', inset: 0, display: 'block' }}
                     />
                   )}
+                  {/* Lighting — shadow falls toward spine (left edge) */}
+                  <div style={{
+                    position: 'absolute', inset: 0, pointerEvents: 'none',
+                    background: 'linear-gradient(to right, rgba(0,0,0,0.24) 0%, transparent 30%)',
+                  }} />
+
+                  {/* ── Page edge — right face, rotated −90° around right edge ── */}
+                  <div style={{
+                    position: 'absolute', top: 0, right: 0,
+                    width: PAGE_W, height: CANVAS_H,
+                    transformOrigin: 'right center',
+                    transform: 'rotateY(-90deg)',
+                    overflow: 'hidden',
+                  }}>
+                    {/* Stacked-pages texture */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'repeating-linear-gradient(to bottom, #e9e4dc 0px, #e9e4dc 1px, #eee9e1 1px, #eee9e1 3px)',
+                    }} />
+                    {/* Shading — darker at spine side, lighter at outer edge */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to right, #aca89f, #d8d4cc 55%, #e4e0d8)',
+                    }} />
+                  </div>
                 </div>
               </div>
 
@@ -411,19 +451,27 @@ export default function Home() {
                 <button
                   onClick={() => navigateMockupTemplate(-1)}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
-                >
-                  ‹
-                </button>
+                >‹</button>
                 <span className="text-xs text-zinc-400 w-20 text-center tracking-widest uppercase">
                   {activeTemplate.name}
                 </span>
                 <button
                   onClick={() => navigateMockupTemplate(1)}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
-                >
-                  ›
-                </button>
+                >›</button>
               </div>
+
+              {/* Refresh snapshot */}
+              <button
+                onClick={() => setMockupDataUrl(exportFnRef.current?.() ?? null)}
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 4v6h6M23 20v-6h-6" />
+                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                </svg>
+                Refresh preview
+              </button>
             </div>
           )}
         </main>
