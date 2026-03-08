@@ -8,7 +8,7 @@ import type { BookInfo, CoverConcept, TextStyle, Position, Template, OverlayStyl
 import { TEMPLATES, CANVAS_W, CANVAS_H, customLayoutToTemplate } from '@/lib/templates'
 
 const SPINE_W = 48
-const PAGE_W  = 18  // visible page-edge thickness
+const PAGE_W  = 30  // visible page-edge thickness
 
 const CanvasEditor = dynamic(() => import('@/components/CanvasEditor'), { ssr: false })
 
@@ -456,14 +456,29 @@ export default function Home() {
                         transformOrigin: 'right center',
                         transform: 'rotateY(-90deg)',
                         overflow: 'hidden',
+                        // Slight outer-edge rounding simulates pages fanning out
+                        borderRadius: '0 6px 6px 0',
                       }}>
+                        {/* Individual page lines — tight cream/white alternation */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'repeating-linear-gradient(to bottom, #e9e4dc 0px, #e9e4dc 1px, #eee9e1 1px, #eee9e1 3px)',
+                          background: 'repeating-linear-gradient(to bottom, #f5f0e8 0px, #f5f0e8 1px, #e8e3d8 1px, #e8e3d8 3px)',
                         }} />
+                        {/* Depth shading: dark at spine side, brightening outward */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'linear-gradient(to right, #aca89f, #d8d4cc 55%, #e4e0d8)',
+                          background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.02) 60%, rgba(255,255,255,0.08) 100%)',
+                        }} />
+                        {/* Top & bottom shadow — covers compress pages inward */}
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 12%, transparent 88%, rgba(0,0,0,0.35) 100%)',
+                        }} />
+                        {/* Outer-edge highlight — thin bright line on far right */}
+                        <div style={{
+                          position: 'absolute', top: '4%', right: 0, bottom: '4%', width: 2,
+                          background: 'rgba(255,255,255,0.30)',
+                          borderRadius: 1,
                         }} />
                       </div>
 
