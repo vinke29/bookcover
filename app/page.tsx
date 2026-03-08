@@ -75,6 +75,8 @@ export default function Home() {
   // 3D mockup preview
   const [showMockup, setShowMockup] = useState(false)
   const [mockupDataUrl, setMockupDataUrl] = useState<string | null>(null)
+  const [mockupRot, setMockupRot] = useState({ x: 4, y: -28 })
+  const mockupDragRef = useRef<{ startX: number; startY: number; rotX: number; rotY: number } | null>(null)
 
   // Which text element is focused in the right panel
   const [focusedElement, setFocusedElement] = useState<'title' | 'subtitle' | 'author'>('title')
@@ -304,6 +306,7 @@ export default function Home() {
               if (!showMockup) {
                 const dataUrl = exportFnRef.current?.() ?? null
                 setMockupDataUrl(dataUrl)
+                setMockupRot({ x: 4, y: -28 })
               }
               setShowMockup(v => !v)
             }}
@@ -362,14 +365,43 @@ export default function Home() {
           {/* ── 3D book mockup — proper CSS 3D box ── */}
           {showMockup && (
             <div className="flex flex-col items-center gap-6">
-              {/* 3D stage */}
+              {/* 3D stage — scaled to 62% so it fits the screen */}
+              <div
+                style={{
+                  width: CANVAS_W * 0.62,
+                  height: CANVAS_H * 0.62,
+                  position: 'relative',
+                  flexShrink: 0,
+                  cursor: mockupDragRef.current ? 'grabbing' : 'grab',
+                }}
+                onMouseDown={e => {
+                  mockupDragRef.current = { startX: e.clientX, startY: e.clientY, rotX: mockupRot.x, rotY: mockupRot.y }
+                }}
+                onMouseMove={e => {
+                  if (!mockupDragRef.current) return
+                  const dx = e.clientX - mockupDragRef.current.startX
+                  const dy = e.clientY - mockupDragRef.current.startY
+                  setMockupRot({
+                    x: Math.max(-40, Math.min(40, mockupDragRef.current.rotX - dy * 0.35)),
+                    y: Math.max(-70, Math.min(70, mockupDragRef.current.rotY + dx * 0.35)),
+                  })
+                }}
+                onMouseUp={() => { mockupDragRef.current = null }}
+                onMouseLeave={() => { mockupDragRef.current = null }}
+              >
+                <div style={{
+                  position: 'absolute', top: 0, left: 0,
+                  transformOrigin: 'top left',
+                  transform: 'scale(0.62)',
+                  width: CANVAS_W, height: CANVAS_H,
+                }}>
               <div style={{ perspective: '1100px', perspectiveOrigin: '50% 45%' }}>
                 <div style={{
                   position: 'relative',
                   width: CANVAS_W,
                   height: CANVAS_H,
                   transformStyle: 'preserve-3d',
-                  transform: 'rotateX(4deg) rotateY(-28deg)',
+                  transform: `rotateX(${mockupRot.x}deg) rotateY(${mockupRot.y}deg)`,
                   filter: 'drop-shadow(20px 36px 52px rgba(0,0,0,0.92))',
                 }}>
                   {/* ── Spine — left face, rotated 90° around left edge ── */}
@@ -445,6 +477,8 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+                </div> {/* scale(0.62) inner */}
+              </div> {/* outer sized wrapper */}
 
               {/* Template navigation */}
               <div className="flex items-center gap-4">
@@ -461,17 +495,20 @@ export default function Home() {
                 >›</button>
               </div>
 
-              {/* Refresh snapshot */}
-              <button
-                onClick={() => setMockupDataUrl(exportFnRef.current?.() ?? null)}
-                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 4v6h6M23 20v-6h-6" />
-                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" />
-                </svg>
-                Refresh preview
-              </button>
+              {/* Sync snapshot + hint */}
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  onClick={() => setMockupDataUrl(exportFnRef.current?.() ?? null)}
+                  className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 4v6h6M23 20v-6h-6" />
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                  </svg>
+                  Sync from canvas
+                </button>
+                <span className="text-[10px] text-zinc-600">Drag to rotate · syncs latest edits</span>
+              </div>
             </div>
           )}
         </main>
