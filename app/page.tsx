@@ -8,7 +8,7 @@ import type { BookInfo, CoverConcept, TextStyle, Position, Template, OverlayStyl
 import { TEMPLATES, CANVAS_W, CANVAS_H, customLayoutToTemplate } from '@/lib/templates'
 
 const SPINE_W = 48
-const PAGE_W  = 30  // visible page-edge thickness
+const PAGE_W  = 52  // visible page-edge thickness
 
 const CanvasEditor = dynamic(() => import('@/components/CanvasEditor'), { ssr: false })
 
@@ -75,7 +75,7 @@ export default function Home() {
   // 3D mockup preview
   const [showMockup, setShowMockup] = useState(false)
   const [mockupDataUrl, setMockupDataUrl] = useState<string | null>(null)
-  const [mockupRot, setMockupRot] = useState({ x: 4, y: -28 })
+  const [mockupRot, setMockupRot] = useState({ x: 4, y: -38 })
   const [isMockupDragging, setIsMockupDragging] = useState(false)
 
   // Which text element is focused in the right panel
@@ -462,12 +462,12 @@ export default function Home() {
                         {/* Individual page lines — tight cream/white alternation */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'repeating-linear-gradient(to bottom, #f5f0e8 0px, #f5f0e8 1px, #e8e3d8 1px, #e8e3d8 3px)',
+                          background: 'repeating-linear-gradient(to bottom, #faf8f4 0px, #faf8f4 1.5px, #e4ddd0 1.5px, #e4ddd0 3px)',
                         }} />
-                        {/* Depth shading: dark at spine side, brightening outward */}
+                        {/* Depth shading: very slight shadow on far left (where cover meets pages) */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 25%, rgba(0,0,0,0.02) 60%, rgba(255,255,255,0.08) 100%)',
+                          background: 'linear-gradient(to right, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.06) 30%, transparent 70%)',
                         }} />
                         {/* Top & bottom shadow — covers compress pages inward */}
                         <div style={{
