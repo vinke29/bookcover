@@ -316,9 +316,38 @@ export default function Home() {
           error={error}
         />
 
-        <main className="flex-1 flex items-center justify-center bg-zinc-900 overflow-auto">
-          {showMockup ? (
-            // ── 3D book mockup ────────────────────────────────────────────────
+        <main className="flex-1 flex items-center justify-center bg-zinc-900 overflow-auto relative">
+          {/* ── Edit canvas — always mounted so positions never reset on toggle ── */}
+          <div style={{ display: showMockup ? 'none' : 'flex' }}>
+            <CanvasEditor
+              imageUrl={imageUrl}
+              fgImageUrl={fgImageUrl}
+              title={bookInfo.title}
+              subtitle={bookInfo.subtitle}
+              author={bookInfo.author}
+              titleStyle={titleStyle}
+              subtitleStyle={subtitleStyle}
+              authorStyle={authorStyle}
+              titlePos={titlePos}
+              subtitlePos={subtitlePos}
+              authorPos={authorPos}
+              imagePos={imagePos}
+              imageScale={imageScale}
+              colorGradeId={colorGradeId}
+              template={activeTemplate}
+              onTitlePosChange={setTitlePos}
+              onSubtitlePosChange={setSubtitlePos}
+              onAuthorPosChange={setAuthorPos}
+              onImagePosChange={setImagePos}
+              onTitlePlacementSuggested={handleTitlePlacementSuggested}
+              onElementFocus={setFocusedElement}
+              isLoading={isGenerating}
+              exportRef={exportFnRef}
+            />
+          </div>
+
+          {/* ── 3D book mockup — snapshot of the live canvas ── */}
+          {showMockup && (
             <div style={{ perspective: '1800px' }}>
               <div style={{
                 display: 'flex',
@@ -352,7 +381,6 @@ export default function Home() {
                     {bookInfo.title}{bookInfo.author ? ` · ${bookInfo.author}` : ''}
                   </span>
                 </div>
-                {/* Cover — snapshot of the live canvas, no re-load needed */}
                 {mockupDataUrl && (
                   <img
                     src={mockupDataUrl}
@@ -364,33 +392,6 @@ export default function Home() {
                 )}
               </div>
             </div>
-          ) : (
-            // ── Edit mode ─────────────────────────────────────────────────────
-            <CanvasEditor
-              imageUrl={imageUrl}
-              fgImageUrl={fgImageUrl}
-              title={bookInfo.title}
-              subtitle={bookInfo.subtitle}
-              author={bookInfo.author}
-              titleStyle={titleStyle}
-              subtitleStyle={subtitleStyle}
-              authorStyle={authorStyle}
-              titlePos={titlePos}
-              subtitlePos={subtitlePos}
-              authorPos={authorPos}
-              imagePos={imagePos}
-              imageScale={imageScale}
-              colorGradeId={colorGradeId}
-              template={activeTemplate}
-              onTitlePosChange={setTitlePos}
-              onSubtitlePosChange={setSubtitlePos}
-              onAuthorPosChange={setAuthorPos}
-              onImagePosChange={setImagePos}
-              onTitlePlacementSuggested={handleTitlePlacementSuggested}
-              onElementFocus={setFocusedElement}
-              isLoading={isGenerating}
-              exportRef={exportFnRef}
-            />
           )}
         </main>
 
