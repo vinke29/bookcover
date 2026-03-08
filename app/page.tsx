@@ -459,15 +459,15 @@ export default function Home() {
                         // Slight outer-edge rounding simulates pages fanning out
                         borderRadius: '0 6px 6px 0',
                       }}>
-                        {/* Individual page lines — tight cream/white alternation */}
+                        {/* Individual page lines — vary along depth axis so they appear vertical from viewer */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'repeating-linear-gradient(to bottom, #faf8f4 0px, #faf8f4 1.5px, #e4ddd0 1.5px, #e4ddd0 3px)',
+                          background: 'repeating-linear-gradient(to right, #faf8f4 0px, #faf8f4 2px, #ddd6c8 2px, #ddd6c8 4px)',
                         }} />
-                        {/* Depth shading: very slight shadow on far left (where cover meets pages) */}
+                        {/* Depth shading: dark at cover edge (right/z=0), bright at outer edge (left/z=depth) */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'linear-gradient(to right, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.06) 30%, transparent 70%)',
+                          background: 'linear-gradient(to left, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.10) 35%, transparent 75%)',
                         }} />
                         {/* Top & bottom shadow — covers compress pages inward */}
                         <div style={{
