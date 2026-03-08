@@ -416,7 +416,7 @@ export default function Home() {
                         position: 'absolute', top: 0, left: 0,
                         width: mSpine, height: mH,
                         transformOrigin: 'left center',
-                        transform: 'rotateY(90deg)',
+                        transform: 'rotateY(-90deg)',
                         background: spineBg,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         overflow: 'hidden',
@@ -454,7 +454,7 @@ export default function Home() {
                         position: 'absolute', top: 0, right: 0,
                         width: mPage, height: mH,
                         transformOrigin: 'right center',
-                        transform: 'rotateY(-90deg)',
+                        transform: 'rotateY(90deg)',
                         overflow: 'hidden',
                         // Slight outer-edge rounding simulates pages fanning out
                         borderRadius: '0 6px 6px 0',
