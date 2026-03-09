@@ -294,11 +294,15 @@ export default function Home() {
     const batchIndex = nextBatch
     setNextBatch(b => b + 1)
 
+    const usedStyles = variants
+      .map(v => v.concept?.styleName)
+      .filter((s): s is string => !!s)
+
     try {
       const conceptRes = await fetch('/api/generate-concept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...bookInfo, batchIndex }),
+        body: JSON.stringify({ ...bookInfo, batchIndex, excludeStyles: usedStyles }),
       })
       if (!conceptRes.ok) throw new Error('Failed to generate more concepts')
       const conceptData = await conceptRes.json()

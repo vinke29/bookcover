@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
 
     const isPreview = quality === 'preview'
 
-    // Append universal quality suffix — reinforces the painterly illustration register
-    const enhancedPrompt = `${prompt}, professional book cover illustration, painterly art style, cinematic lighting, ultra detailed, award-winning cover art, no text, no letters, no typography`
+    // Append universal quality suffix — forces illustrated/painterly register, prevents photorealism
+    const enhancedPrompt = `${prompt}, professional book cover illustration, painterly illustrated art style, digital painting, illustrated NOT photographic, NOT stock photo, NOT realistic photography, award-winning cover art, cinematic lighting, ultra detailed, no text, no letters, no typography`
 
     const endpoint = isPreview ? 'fal-ai/flux/schnell' : 'fal-ai/flux-pro'
     const body = isPreview

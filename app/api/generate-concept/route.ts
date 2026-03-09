@@ -5,9 +5,15 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
-    const { batchIndex = 0, ...bookInfo } = await req.json()
+    const { batchIndex = 0, excludeStyles = [], ...bookInfo } = await req.json()
 
     const prompt = `You are an award-winning book cover art director. Design 4 completely different cover concepts for this book.
+
+CRITICAL RULE — ALL imagePrompts MUST describe ILLUSTRATED or PAINTED artwork, NOT photography.
+Every imagePrompt must be written as if commissioning a human illustrator or painter.
+Use language like: "painterly illustration", "digital oil painting", "gouache illustration", "watercolor painting", "graphic illustration", "ink and paint", "concept art painting".
+NEVER describe photorealistic photographs, stock photos, or camera-captured images.
+Even "High-Fashion Editorial" or "Liminal Space" styles must be rendered as ILLUSTRATIONS, not photos.
 
 Book:
 Title: ${bookInfo.title}
@@ -15,6 +21,7 @@ Author: ${bookInfo.author || 'Unknown'}
 Genre: ${bookInfo.genre}
 Mood: ${bookInfo.mood || 'not specified'}
 Description: ${bookInfo.blurb || 'not provided'}
+${excludeStyles.length > 0 ? `\nALREADY USED STYLES (do NOT repeat any of these): ${excludeStyles.join(', ')}\nAll 4 variants must have styleNames that are completely different from the above.` : ''}
 
 Return a JSON object: { "variants": [ ...exactly 4 objects... ] }
 Each variant object contains ALL the fields listed at the end, PLUS a "styleName" field.
@@ -147,8 +154,8 @@ Give it a unique styleName. Apply composition law. Apply all genre/font rules.
 Choose overlay, fonts, sizing, and layout that authentically serve the chosen aesthetic.
 ` : batchIndex === 1 ? `
 VARIANT 1 — styleName: "Typographic Minimalism"
-Pure typographic minimalism — the TYPE IS the design. Image is reduced to texture, giant text commands the cover.
-imagePrompt: abstract textural background — muted, desaturated painterly washes of color OR close-up environmental texture that evokes the book's emotional world. The image exists as a canvas for typography, NOT as a scene. Apply genre color palette and mood from Part 1. No subjects, no figures, no environments — pure texture and atmosphere.
+Pure typographic minimalism — the TYPE IS the design. Image is reduced to pure texture, giant text commands the cover.
+imagePrompt: ABSTRACT TEXTURE ONLY — painterly color field washes, gestural brushstrokes, or fine-grain material texture (aged paper, linen, concrete, watercolor wash). Evokes the book's emotional palette through color and texture alone. ABSOLUTELY NO subjects, NO figures, NO faces, NO objects, NO recognizable symbols, NO environments, NO scenes — NOTHING that could be identified as a thing. Just pure abstract painted texture and color. Muted, desaturated, sophisticated.
 overlay: {"type":"tint","opacity":0.08} to {"type":"tint","opacity":0.14}
 titleFont: "Bebas Neue" (Thriller/Crime/Action) OR "Montserrat" (others) OR "Abril Fatface" (Literary/Romance/Drama)
 titleTransform: "uppercase"
