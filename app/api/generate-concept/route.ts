@@ -5,7 +5,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
-    const bookInfo = await req.json()
+    const { batchIndex = 0, ...bookInfo } = await req.json()
 
     const prompt = `You are an award-winning book cover art director. Design 4 completely different cover concepts for this book.
 
@@ -100,9 +100,10 @@ YA: Cinzel, Raleway, Dancing Script
 Adventure: Abril Fatface, Bebas Neue, Oswald
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PART 3 — The 4 mandatory variant styles
+PART 3 — The 4 mandatory variant styles (Batch ${batchIndex})
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+${batchIndex === 0 ? `
 VARIANT 1 — styleName: "Cinematic"
 Use the genre art style + mood modifier from Parts 1–2. Select the most compelling dramatic archetype.
 Apply composition law (subject lower 55-65%, open space upper 35-45%).
@@ -116,14 +117,14 @@ ornament: true for fantasy/romance/historical, false otherwise
 
 VARIANT 2 — styleName: "Literary Clean"
 This is a LIGHT BACKGROUND cover inspired by Penguin and FSG literary fiction design.
-imagePrompt: IGNORE the dark cinematic genre styles above. Use ONLY: "isolated [relevant subject or symbolic object from the book], hand-painted watercolor illustration, subject centered in lower 50% of frame, vast cream off-white negative space above, soft brushwork with gentle edges, editorial illustration aesthetic, no dramatic lighting, no dark backgrounds, no cinematic atmosphere, clean minimal, painterly, [add 1-2 specific visual elements from the book description], no text, no letters, no typography"
+imagePrompt: IGNORE the dark cinematic genre styles above. Use ONLY: "isolated [relevant subject or symbolic object from the book], hand-painted watercolor illustration, subject centered in lower 50% of frame, vast cream off-white negative space above, soft brushwork with gentle edges, editorial illustration aesthetic, no dramatic lighting, no dark backgrounds, clean minimal, painterly, no text, no letters, no typography"
 overlay MUST be EXACTLY: {"type":"solid-block","position":"top","heightRatio":0.38,"color":"#f5f0eb"}
 titleYPercent: 18-26 (MUST be inside the cream block, i.e. less than 38)
-titleColor: choose ONE rich accent color matching the book's tone — terracotta "#c45c2a", deep navy "#1c2b4a", forest green "#2d4a35", burgundy "#6b1d2a", slate blue "#2a3d5c", warm brown "#5c3317" — NEVER white, NEVER light
+titleColor: choose ONE rich accent color — terracotta "#c45c2a", deep navy "#1c2b4a", forest green "#2d4a35", burgundy "#6b1d2a", slate blue "#2a3d5c", warm brown "#5c3317" — NEVER white
 noShadow: true
 titleFont: "Playfair Display" (italic preferred) or "EB Garamond"
 titleItalic: true
-authorColor: same family as titleColor, use rgba with 0.80 opacity
+authorColor: same family as titleColor, rgba with 0.80 opacity
 authorYPercent: 90-93
 titleSize: 52-72
 titleWidthFill: false
@@ -133,8 +134,8 @@ imagePrompt: same genre but with strong graphic composition, high-contrast, subj
 Apply composition law.
 titleWidthFill: true if title has 1-3 words, false otherwise
 titleFont: "Abril Fatface"
-titleSize: 88-110 (used even with titleWidthFill for cap)
-overlay: {"type":"tint","opacity": 0.08} to {"type":"tint","opacity":0.16}
+titleSize: 88-110
+overlay: {"type":"tint","opacity":0.08} to {"type":"tint","opacity":0.16}
 titleYPercent: 42-56
 titleColor: "#ffffff"
 titleTransform: "none"
@@ -143,9 +144,9 @@ accentBar: null
 accentLines: false
 
 VARIANT 4 — styleName: "Atmospheric"
-imagePrompt: abstract and symbolic — evoke the emotional tone rather than depicting the story literally. Color-washed, textural, impressionistic, painterly. Focus on mood, light, and texture over narrative scene. Use the genre mood palette.
+imagePrompt: abstract and symbolic — evoke the emotional tone rather than depicting the story literally. Color-washed, textural, impressionistic, painterly. Focus on mood, light, and texture over narrative scene.
 Apply composition law.
-overlay: {"type":"tint","opacity":0.30} to {"type":"tint","opacity":0.42}  — OR vignette with topOpacity 0.50-0.58, bottomOpacity 0.50-0.58
+overlay: {"type":"tint","opacity":0.30} to {"type":"tint","opacity":0.42} OR vignette topOpacity 0.50-0.58, bottomOpacity 0.50-0.58
 titleFont: "Playfair Display" (italic) or "EB Garamond" — NEVER Bebas Neue or Abril Fatface
 titleItalic: true
 titleYPercent: 40-52
@@ -153,6 +154,81 @@ titleColor: "#ffffff"
 titleSize: 56-80
 titleWidthFill: false
 ornament: true
+` : batchIndex === 1 ? `
+VARIANT 1 — styleName: "Shadow Band"
+A film noir / crime aesthetic. Dark image with heavy shadow band at bottom 40%.
+imagePrompt: film noir atmosphere — rain-slicked streets OR isolated room with single lamp OR shadows and fog. Dark, moody, cinematic. Apply genre and mood from Part 1.
+Apply composition law.
+overlay MUST be EXACTLY: {"type":"band","bandRatio":0.40,"opacity":0.95}
+titleYPercent: 74-82 (in the dark band at bottom)
+titleFont: "Playfair Display" or "EB Garamond"
+titleColor: "#f0ebe0"
+titleSize: 52-70
+showDivider: true
+dividerStyle: "diamond"
+authorYPercent: 93-96
+authorColor: "rgba(154,144,128,0.90)"
+ornament: false
+
+VARIANT 2 — styleName: "Heritage"
+Historical / vintage aesthetic. Sepia-toned with inset border frame.
+imagePrompt: period-appropriate historical illustration, warm golden-hour light, classical composition. Apply genre and mood from Part 1.
+Apply composition law.
+colorTint: "rgba(100,65,10,0.22)"
+overlay: vignette topOpacity 0.55-0.65, bottomOpacity 0.78-0.88
+border: {"padding":14,"color":"rgba(245,230,200,0.40)","lineWidth":1}
+titleFont: "EB Garamond"
+titleTransform: "uppercase"
+titleColor: "#f5e6c8"
+titleSize: 46-58
+titleYPercent: 68-78
+showDivider: true
+dividerStyle: "dots"
+authorColor: "rgba(200,170,120,0.85)"
+authorYPercent: 90-93
+ornament: false
+
+VARIANT 3 — styleName: "Editorial"
+Magazine / art-book cover. Nearly full-bleed image, left-aligned uppercase sans at top.
+imagePrompt: strong editorial composition, striking subject, confident and graphic. Apply genre and mood from Part 1.
+Apply composition law.
+overlay: {"type":"tint","opacity":0.10} to {"type":"tint","opacity":0.15}
+titleFont: "Montserrat" or "Raleway"
+titleTransform: "uppercase"
+titleAlign: "left"
+titleSize: 26-36
+titleYPercent: 8-14
+titleColor: "#ffffff"
+titleWidthFill: false
+authorAlign: "left"
+authorFont: "Montserrat"
+authorYPercent: 92-95
+ornament: false
+showDivider: false
+
+VARIANT 4 — styleName: "Elegant Script"
+Soft and elegant. Flowing script title, ornament, very light tint.
+imagePrompt: warm romantic scene, golden-hour light, intimate atmosphere. Apply genre and mood from Part 1.
+Apply composition law.
+overlay: {"type":"tint","opacity":0.06} to {"type":"tint","opacity":0.10}
+titleFont: "Dancing Script"
+titleItalic: false
+titleSize: 74-92
+titleYPercent: 44-54
+titleColor: "#ffffff"
+titleWidthFill: false
+ornament: true
+showDivider: true
+dividerStyle: "diamond"
+authorYPercent: 90-93
+` : `
+Generate 4 MORE distinct cover styles for this book. Be creative and varied — try unexpected approaches:
+Consider: typographic minimalism, split-panel layouts, abstract expressionist, vintage poster, graphic novel aesthetic, high-fashion editorial, painterly portrait, symbolic still life.
+Each variant MUST have a unique styleName (e.g. "Typographic", "Vintage Poster", "Split Panel", "Abstract") and genuinely different imagePrompt and customLayout from any previous batch.
+Apply all the same genre/font rules from Parts 1-2. Mix archetypes freely.
+At least one variant should use titleWidthFill: true (if title is 1-3 words) with Abril Fatface.
+At least one variant should use a light/clean aesthetic (solid-block overlay or very low tint).
+`}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FIELDS TO RETURN for each variant (all required):

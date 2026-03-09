@@ -30,6 +30,8 @@ function defaultSubtitleY(t: Template): number {
 export default function Home() {
   const [phase, setPhase] = useState<AppPhase>('form')
   const [variants, setVariants] = useState<GeneratedVariant[]>([])
+  const [nextBatch, setNextBatch] = useState(0)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const [bookInfo, setBookInfo] = useState<BookInfo>({
     title: '', subtitle: '', author: '', genre: '', blurb: '', mood: '',
@@ -225,6 +227,7 @@ export default function Home() {
       concept: null, imageUrl: null, cdnUrl: null, isLoading: true, error: null,
     }))
     setVariants(loadingSlots)
+    setNextBatch(1)
     setPhase('gallery')
 
     try {
@@ -232,7 +235,7 @@ export default function Home() {
       const conceptRes = await fetch('/api/generate-concept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookInfo),
+        body: JSON.stringify({ ...bookInfo, batchIndex: 0 }),
       })
       if (!conceptRes.ok) throw new Error('Failed to generate cover concepts')
       const conceptData = await conceptRes.json()
@@ -274,6 +277,70 @@ export default function Home() {
       setPhase('form')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleGenerateMore = async () => {
+    if (isLoadingMore) return
+    setIsLoadingMore(true)
+
+    // Append 4 loading slots to existing variants
+    const offset = variants.length
+    const loadingSlots: GeneratedVariant[] = Array(4).fill(null).map(() => ({
+      concept: null, imageUrl: null, cdnUrl: null, isLoading: true, error: null,
+    }))
+    setVariants(prev => [...prev, ...loadingSlots])
+
+    const batchIndex = nextBatch
+    setNextBatch(b => b + 1)
+
+    try {
+      const conceptRes = await fetch('/api/generate-concept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...bookInfo, batchIndex }),
+      })
+      if (!conceptRes.ok) throw new Error('Failed to generate more concepts')
+      const conceptData = await conceptRes.json()
+
+      const variantConcepts: CoverConcept[] = conceptData.variants ?? []
+      if (variantConcepts.length === 0) throw new Error('No variants returned')
+
+      setVariants(prev => prev.map((v, idx) =>
+        idx >= offset && idx < offset + variantConcepts.length
+          ? { concept: variantConcepts[idx - offset], imageUrl: null, cdnUrl: null, isLoading: true, error: null }
+          : v
+      ))
+
+      await Promise.all(variantConcepts.map(async (c, i) => {
+        const slotIdx = offset + i
+        try {
+          const imageRes = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: c.imagePrompt, quality: 'preview' }),
+          })
+          if (!imageRes.ok) throw new Error('Image generation failed')
+          const imageData = await imageRes.json()
+          setVariants(prev => prev.map((v, idx) =>
+            idx === slotIdx
+              ? { ...v, imageUrl: imageData.imageUrl, cdnUrl: imageData.cdnUrl ?? null, isLoading: false }
+              : v
+          ))
+        } catch (err) {
+          setVariants(prev => prev.map((v, idx) =>
+            idx === slotIdx
+              ? { ...v, isLoading: false, error: err instanceof Error ? err.message : 'Failed' }
+              : v
+          ))
+        }
+      }))
+    } catch (err) {
+      // Remove the loading slots we added on failure
+      setVariants(prev => prev.slice(0, offset))
+      setNextBatch(batchIndex)
+    } finally {
+      setIsLoadingMore(false)
     }
   }
 
@@ -388,6 +455,8 @@ export default function Home() {
               author={bookInfo.author}
               onSelect={handleVariantSelect}
               onBack={() => setPhase('form')}
+              onLoadMore={handleGenerateMore}
+              isLoadingMore={isLoadingMore}
             />
           ) : (
             // Form phase: empty center state
