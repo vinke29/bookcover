@@ -454,7 +454,7 @@ export default function Home() {
                         position: 'absolute', top: 0, right: 0,
                         width: mPage, height: mH,
                         transformOrigin: 'right center',
-                        transform: 'rotateY(90deg)',
+                        transform: 'rotateY(-90deg)',
                         overflow: 'hidden',
                         // Slight outer-edge rounding simulates pages fanning out
                         borderRadius: '0 6px 6px 0',
@@ -462,12 +462,12 @@ export default function Home() {
                         {/* Individual page lines — vary along depth axis so they appear vertical from viewer */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'repeating-linear-gradient(to left, #faf8f4 0px, #faf8f4 2px, #ddd6c8 2px, #ddd6c8 4px)',
+                          background: 'repeating-linear-gradient(to right, #faf8f4 0px, #faf8f4 2px, #ddd6c8 2px, #ddd6c8 4px)',
                         }} />
-                        {/* Depth shading: dark at cover edge (right/z=0), bright at outer edge (left/z=depth) */}
+                        {/* Depth shading: dark at cover edge, bright at outer page edge */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'linear-gradient(to left, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.10) 35%, transparent 75%)',
+                          background: 'linear-gradient(to right, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.10) 35%, transparent 75%)',
                         }} />
                         {/* Top & bottom shadow — covers compress pages inward */}
                         <div style={{
