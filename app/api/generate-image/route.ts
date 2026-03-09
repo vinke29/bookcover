@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Allow up to 60s for the pro model to finish
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   try {
     const { prompt } = await req.json()
@@ -9,18 +12,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'FAL_KEY not set' }, { status: 500 })
     }
 
-    const res = await fetch('https://fal.run/fal-ai/flux/dev', {
+    // Append universal quality suffix — reinforces the painterly illustration register
+    const enhancedPrompt = `${prompt}, professional book cover illustration, painterly art style, cinematic lighting, ultra detailed, award-winning cover art, no text, no letters, no typography`
+
+    const res = await fetch('https://fal.run/fal-ai/flux-pro', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Key ${apiKey}`,
       },
       body: JSON.stringify({
-        prompt,
+        prompt: enhancedPrompt,
         image_size: { width: 768, height: 1152 },
         num_images: 1,
         num_inference_steps: 28,
-        guidance_scale: 3.5,
+        guidance_scale: 4.5,
       }),
     })
 
