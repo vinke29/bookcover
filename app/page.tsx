@@ -68,6 +68,7 @@ export default function Home() {
   const [mockupRot, setMockupRot] = useState({ x: 4, y: -38 })
   const [isMockupDragging, setIsMockupDragging] = useState(false)
   const [focusedElement, setFocusedElement] = useState<'title' | 'subtitle' | 'author'>('title')
+  const [isUpgrading, setIsUpgrading] = useState(false)
 
   const exportFnRef = useRef<((scale?: number) => string | null) | null>(null)
 
@@ -284,7 +285,8 @@ export default function Home() {
     setPhase('editor')
     setShowMockup(false)
 
-    // Silently upgrade to Flux Pro in the background
+    // Upgrade to Flux Pro in the background
+    setIsUpgrading(true)
     try {
       const imageRes = await fetch('/api/generate-image', {
         method: 'POST',
@@ -298,7 +300,9 @@ export default function Home() {
         if (imageData.cdnUrl) setCdnUrl(imageData.cdnUrl)
       }
     } catch {
-      // Keep the preview image if upgrade fails — no error shown to user
+      // Keep the preview image if upgrade fails
+    } finally {
+      setIsUpgrading(false)
     }
   }
 
@@ -400,6 +404,16 @@ export default function Home() {
         {/* ── Editor phase ──────────────────────────────────────────────────── */}
         {phase === 'editor' && (
           <main className="flex-1 flex items-center justify-center bg-zinc-900 overflow-auto relative">
+            {/* Upgrade indicator */}
+            {isUpgrading && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs px-3 py-1.5 rounded-full shadow-lg">
+                <svg className="animate-spin h-3 w-3 text-indigo-400" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Upgrading to high quality…
+              </div>
+            )}
             <div style={{ display: showMockup ? 'none' : 'flex' }}>
               <CanvasEditor
                 imageUrl={imageUrl}
