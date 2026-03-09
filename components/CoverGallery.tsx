@@ -53,27 +53,12 @@ const STYLE_CONFIG: Record<string, StyleConfig> = {
     titleYPct: 42,
     authorYPct: 91,
   },
-  'Typographic': {
+  'Typographic Minimalism': {
     overlayStyle: { background: 'rgba(0,0,0,0.10)' },
     titleStyle: { color: '#ffffff', fontFamily: '"Montserrat", sans-serif', fontWeight: 900, letterSpacing: '0.02em', textShadow: '0 2px 24px rgba(0,0,0,0.5)' },
     authorStyle: { color: 'rgba(255,255,255,0.55)', fontFamily: '"Montserrat", sans-serif', textShadow: 'none' },
     titleYPct: 44,
     authorYPct: 92,
-  },
-  'Split Panel': {
-    overlayStyle: { background: 'linear-gradient(to right, rgba(13,17,23,0.92) 0%, rgba(13,17,23,0.75) 42%, rgba(13,17,23,0.15) 65%, transparent 100%)' },
-    titleStyle: { color: '#ffffff', fontFamily: '"Playfair Display", serif', fontWeight: 700, textShadow: '0 1px 10px rgba(0,0,0,0.7)' },
-    authorStyle: { color: 'rgba(255,255,255,0.65)', fontFamily: '"Montserrat", sans-serif', textShadow: 'none' },
-    titleYPct: 38,
-    authorYPct: 92,
-    titleAlign: 'left',
-  },
-  'Abstract': {
-    overlayStyle: { background: 'rgba(0,0,0,0.28)' },
-    titleStyle: { color: '#ffffff', fontFamily: '"Playfair Display", serif', fontStyle: 'italic', fontWeight: 400, textShadow: '0 2px 20px rgba(0,0,0,0.80)' },
-    authorStyle: { color: 'rgba(255,255,255,0.62)', fontFamily: '"EB Garamond", serif', textShadow: '0 1px 8px rgba(0,0,0,0.7)' },
-    titleYPct: 48,
-    authorYPct: 91,
   },
   'Vintage Poster': {
     overlayStyle: { background: 'linear-gradient(to bottom, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.18) 38%, transparent 60%)' },
@@ -113,7 +98,7 @@ function CoverCard({
   onSelect: () => void
   index: number
 }) {
-  const styleName = variant.concept?.styleName ?? ['Cinematic', 'Literary Clean', 'Bold', 'Atmospheric', 'Typographic', 'Split Panel', 'Abstract', 'Vintage Poster'][index] ?? 'Cinematic'
+  const styleName = variant.concept?.styleName ?? ['Cinematic', 'Literary Clean', '…', '…', 'Typographic Minimalism', '…', '…', 'Vintage Poster'][index] ?? 'Cinematic'
   const cfg = STYLE_CONFIG[styleName] ?? STYLE_CONFIG['Cinematic']
   const isReady = !variant.isLoading && variant.imageUrl
 

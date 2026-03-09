@@ -129,41 +129,32 @@ authorYPercent: 90-93
 titleSize: 52-72
 titleWidthFill: false
 
-VARIANT 3 — styleName: "Bold"
-imagePrompt: same genre but with strong graphic composition, high-contrast, subject filling lower 40-50%, bold visual impact
-Apply composition law.
-titleWidthFill: true if title has 1-3 words, false otherwise
-titleFont: "Abril Fatface"
-titleSize: 88-110
-overlay: {"type":"tint","opacity":0.08} to {"type":"tint","opacity":0.16}
-titleYPercent: 42-56
-titleColor: "#ffffff"
-titleTransform: "none"
-ornament: false
-accentBar: null
-accentLines: false
+VARIANT 3 — AI-invented direction #1
+Study this book's genre, mood, and description carefully. Invent a BOLD, UNEXPECTED cover aesthetic that would make this book stand out on a shelf next to conventional covers.
+DO NOT choose Cinematic or Literary Clean — those are taken. Push into more surprising territory.
+Draw from: constructivist geometric, liminal space photography, Art Deco, graphic novel aesthetic, high-fashion editorial, Japanese woodblock print, painterly portrait (face-forward), conceptual still life, brutalist minimalism, photographic collage, mid-century modern illustration.
+Choose the single direction that best fits this specific book's emotional world.
+Give it a creative, descriptive styleName that names the AESTHETIC (e.g. "Liminal Space", "Constructivist Geometric", "Art Deco", "High-Fashion Editorial").
+Apply composition law. Apply all genre/font rules from Parts 1-2.
+Choose overlay, fonts, sizing, and layout that authentically serve the chosen aesthetic.
 
-VARIANT 4 — styleName: "Atmospheric"
-imagePrompt: abstract and symbolic — evoke the emotional tone rather than depicting the story literally. Color-washed, textural, impressionistic, painterly. Focus on mood, light, and texture over narrative scene.
-Apply composition law.
-overlay: {"type":"tint","opacity":0.30} to {"type":"tint","opacity":0.42} OR vignette topOpacity 0.50-0.58, bottomOpacity 0.50-0.58
-titleFont: "Playfair Display" (italic) or "EB Garamond" — NEVER Bebas Neue or Abril Fatface
-titleItalic: true
-titleYPercent: 40-52
-titleColor: "#ffffff"
-titleSize: 56-80
-titleWidthFill: false
-ornament: true
+VARIANT 4 — AI-invented direction #2
+Invent a SECOND bold aesthetic, completely different from Variant 3 above.
+DO NOT choose Cinematic or Literary Clean. DO NOT repeat Variant 3's direction.
+Aim for contrast with Variant 3 — if Variant 3 was dark and dramatic, Variant 4 might be light and graphic, or vice versa.
+Same creative pool: constructivist geometric, liminal space, Art Deco, graphic novel, high-fashion editorial, Japanese woodblock, painterly portrait, conceptual still life, brutalist minimalism, photographic collage, mid-century modern.
+Give it a unique styleName. Apply composition law. Apply all genre/font rules.
+Choose overlay, fonts, sizing, and layout that authentically serve the chosen aesthetic.
 ` : batchIndex === 1 ? `
-VARIANT 1 — styleName: "Typographic"
-Pure typographic minimalism — the TYPE IS the design. Minimal tint, image recedes, giant text dominates.
-imagePrompt: abstract textural background relevant to the book's mood — muted, desaturated, painterly washes of color OR close-up environmental texture. The image is a canvas for typography, NOT the focus. Apply genre and mood from Part 1. No subjects, no figures, just texture and atmosphere.
+VARIANT 1 — styleName: "Typographic Minimalism"
+Pure typographic minimalism — the TYPE IS the design. Image is reduced to texture, giant text commands the cover.
+imagePrompt: abstract textural background — muted, desaturated painterly washes of color OR close-up environmental texture that evokes the book's emotional world. The image exists as a canvas for typography, NOT as a scene. Apply genre color palette and mood from Part 1. No subjects, no figures, no environments — pure texture and atmosphere.
 overlay: {"type":"tint","opacity":0.08} to {"type":"tint","opacity":0.14}
-titleFont: "Bebas Neue" (Thriller/Crime/Action) OR "Montserrat" (others)
+titleFont: "Bebas Neue" (Thriller/Crime/Action) OR "Montserrat" (others) OR "Abril Fatface" (Literary/Romance/Drama)
 titleTransform: "uppercase"
 titleAlign: "center"
 titleSize: 96-110
-titleYPercent: 38-52
+titleYPercent: 36-52
 titleWidthFill: true (ONLY if title is 1-3 words, otherwise false)
 titleColor: "#ffffff"
 authorFont: "Montserrat"
@@ -173,36 +164,17 @@ ornament: false
 showDivider: false
 accentLines: false
 
-VARIANT 2 — styleName: "Split Panel"
-Bold compositional split — image occupies right 55-60%, left 40-45% is a solid dark color block with all typography.
-imagePrompt: strong graphic subject filling the RIGHT side of frame, facing left or center. Vivid, high-contrast. Apply genre and mood from Part 1.
-overlay: {"type":"none"} — DO NOT use a gradient overlay, the left panel IS the background
-colorTint: null
-customLayout MUST include a solid left panel achieved via: overlay {"type":"solid-block","position":"top","heightRatio":1.0,"color":"#0d1117"} — use a color that complements the genre (deep navy, dark burgundy, forest black, charcoal)
-titleAlign: "left"
-titleFont: per genre rules
-titleSize: 44-64
-titleYPercent: 32-45
-titleColor: "#ffffff"
-authorAlign: "left"
-authorYPercent: 91-94
-ornament: false
-showDivider: true
-dividerStyle: "line"
-accentLines: true
+VARIANT 2 — AI-invented direction
+Study this book's genre, mood, and description. Invent a bold, unexpected cover aesthetic — NOT Typographic Minimalism, NOT Cinematic, NOT Literary Clean, NOT Vintage Poster.
+Draw from: constructivist geometric, liminal space photography, Art Deco, graphic novel aesthetic, high-fashion editorial, Japanese woodblock print, painterly portrait, conceptual still life, brutalist minimalism, photographic collage, mid-century modern illustration.
+Choose what best fits this specific book. Give it a descriptive styleName (e.g. "Liminal Space", "Constructivist Geometric", "Art Deco").
+Apply composition law. Apply genre/font rules from Parts 1-2. Choose layout that authentically serves the aesthetic.
 
-VARIANT 3 — styleName: "Abstract"
-Abstract expressionist — emotion over narrative. Painterly, gestural, non-literal.
-imagePrompt: fully abstract painterly composition — gestural brushwork, color fields, textural washes. Evokes the emotional register of the book WITHOUT depicting any scene or subject. Think Mark Rothko color fields, Franz Kline gestural marks, Helen Frankenthaler stain painting. Apply the genre's COLOR PALETTE and emotional mood from Part 1, but NO figures, NO environments, NO objects — pure abstraction.
-overlay: {"type":"tint","opacity":0.22} to {"type":"tint","opacity":0.34}
-titleFont: "Playfair Display" (italic) or "EB Garamond"
-titleItalic: true
-titleSize: 56-76
-titleYPercent: 42-54
-titleColor: "#ffffff"
-authorYPercent: 90-93
-ornament: true
-showDivider: false
+VARIANT 3 — AI-invented direction #2
+Invent a SECOND distinct aesthetic, different from Variant 2 above.
+Aim for contrast — if Variant 2 was dark/dramatic, this might be light/graphic or vice versa.
+Same pool: constructivist geometric, liminal space, Art Deco, graphic novel, high-fashion editorial, Japanese woodblock, painterly portrait, conceptual still life, brutalist minimalism, photographic collage, mid-century modern.
+Give it a unique styleName. Apply composition law. Apply genre/font rules.
 
 VARIANT 4 — styleName: "Vintage Poster"
 Classic vintage poster aesthetic — warm, graphic, nostalgic. Top-heavy composition with clear banner area.
