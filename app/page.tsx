@@ -456,7 +456,9 @@ export default function Home() {
               onSelect={handleVariantSelect}
               onBack={() => setPhase('form')}
               onLoadMore={handleGenerateMore}
+              onRegenerateAll={handleGenerate}
               isLoadingMore={isLoadingMore}
+              nextBatch={nextBatch}
             />
           ) : (
             // Form phase: empty center state

@@ -155,79 +155,78 @@ titleSize: 56-80
 titleWidthFill: false
 ornament: true
 ` : batchIndex === 1 ? `
-VARIANT 1 — styleName: "Shadow Band"
-A film noir / crime aesthetic. Dark image with heavy shadow band at bottom 40%.
-imagePrompt: film noir atmosphere — rain-slicked streets OR isolated room with single lamp OR shadows and fog. Dark, moody, cinematic. Apply genre and mood from Part 1.
-Apply composition law.
-overlay MUST be EXACTLY: {"type":"band","bandRatio":0.40,"opacity":0.95}
-titleYPercent: 74-82 (in the dark band at bottom)
-titleFont: "Playfair Display" or "EB Garamond"
-titleColor: "#f0ebe0"
-titleSize: 52-70
-showDivider: true
-dividerStyle: "diamond"
-authorYPercent: 93-96
-authorColor: "rgba(154,144,128,0.90)"
-ornament: false
-
-VARIANT 2 — styleName: "Heritage"
-Historical / vintage aesthetic. Sepia-toned with inset border frame.
-imagePrompt: period-appropriate historical illustration, warm golden-hour light, classical composition. Apply genre and mood from Part 1.
-Apply composition law.
-colorTint: "rgba(100,65,10,0.22)"
-overlay: vignette topOpacity 0.55-0.65, bottomOpacity 0.78-0.88
-border: {"padding":14,"color":"rgba(245,230,200,0.40)","lineWidth":1}
-titleFont: "EB Garamond"
+VARIANT 1 — styleName: "Typographic"
+Pure typographic minimalism — the TYPE IS the design. Minimal tint, image recedes, giant text dominates.
+imagePrompt: abstract textural background relevant to the book's mood — muted, desaturated, painterly washes of color OR close-up environmental texture. The image is a canvas for typography, NOT the focus. Apply genre and mood from Part 1. No subjects, no figures, just texture and atmosphere.
+overlay: {"type":"tint","opacity":0.08} to {"type":"tint","opacity":0.14}
+titleFont: "Bebas Neue" (Thriller/Crime/Action) OR "Montserrat" (others)
 titleTransform: "uppercase"
-titleColor: "#f5e6c8"
-titleSize: 46-58
-titleYPercent: 68-78
-showDivider: true
-dividerStyle: "dots"
-authorColor: "rgba(200,170,120,0.85)"
-authorYPercent: 90-93
-ornament: false
-
-VARIANT 3 — styleName: "Editorial"
-Magazine / art-book cover. Nearly full-bleed image, left-aligned uppercase sans at top.
-imagePrompt: strong editorial composition, striking subject, confident and graphic. Apply genre and mood from Part 1.
-Apply composition law.
-overlay: {"type":"tint","opacity":0.10} to {"type":"tint","opacity":0.15}
-titleFont: "Montserrat" or "Raleway"
-titleTransform: "uppercase"
-titleAlign: "left"
-titleSize: 26-36
-titleYPercent: 8-14
+titleAlign: "center"
+titleSize: 96-110
+titleYPercent: 38-52
+titleWidthFill: true (ONLY if title is 1-3 words, otherwise false)
 titleColor: "#ffffff"
-titleWidthFill: false
-authorAlign: "left"
 authorFont: "Montserrat"
-authorYPercent: 92-95
+authorSize: 12-14
+authorYPercent: 91-93
 ornament: false
 showDivider: false
+accentLines: false
 
-VARIANT 4 — styleName: "Elegant Script"
-Soft and elegant. Flowing script title, ornament, very light tint.
-imagePrompt: warm romantic scene, golden-hour light, intimate atmosphere. Apply genre and mood from Part 1.
-Apply composition law.
-overlay: {"type":"tint","opacity":0.06} to {"type":"tint","opacity":0.10}
-titleFont: "Dancing Script"
-titleItalic: false
-titleSize: 74-92
-titleYPercent: 44-54
+VARIANT 2 — styleName: "Split Panel"
+Bold compositional split — image occupies right 55-60%, left 40-45% is a solid dark color block with all typography.
+imagePrompt: strong graphic subject filling the RIGHT side of frame, facing left or center. Vivid, high-contrast. Apply genre and mood from Part 1.
+overlay: {"type":"none"} — DO NOT use a gradient overlay, the left panel IS the background
+colorTint: null
+customLayout MUST include a solid left panel achieved via: overlay {"type":"solid-block","position":"top","heightRatio":1.0,"color":"#0d1117"} — use a color that complements the genre (deep navy, dark burgundy, forest black, charcoal)
+titleAlign: "left"
+titleFont: per genre rules
+titleSize: 44-64
+titleYPercent: 32-45
 titleColor: "#ffffff"
-titleWidthFill: false
-ornament: true
+authorAlign: "left"
+authorYPercent: 91-94
+ornament: false
 showDivider: true
-dividerStyle: "diamond"
+dividerStyle: "line"
+accentLines: true
+
+VARIANT 3 — styleName: "Abstract"
+Abstract expressionist — emotion over narrative. Painterly, gestural, non-literal.
+imagePrompt: fully abstract painterly composition — gestural brushwork, color fields, textural washes. Evokes the emotional register of the book WITHOUT depicting any scene or subject. Think Mark Rothko color fields, Franz Kline gestural marks, Helen Frankenthaler stain painting. Apply the genre's COLOR PALETTE and emotional mood from Part 1, but NO figures, NO environments, NO objects — pure abstraction.
+overlay: {"type":"tint","opacity":0.22} to {"type":"tint","opacity":0.34}
+titleFont: "Playfair Display" (italic) or "EB Garamond"
+titleItalic: true
+titleSize: 56-76
+titleYPercent: 42-54
+titleColor: "#ffffff"
 authorYPercent: 90-93
+ornament: true
+showDivider: false
+
+VARIANT 4 — styleName: "Vintage Poster"
+Classic vintage poster aesthetic — warm, graphic, nostalgic. Top-heavy composition with clear banner area.
+imagePrompt: vintage illustration style — flat graphic shapes, bold colors, period-appropriate imagery. Think WPA poster design, 1940s travel poster aesthetics, or mid-century pulp illustration. Apply genre subject from Part 1 in this poster style. Rich warm palette with deliberate color blocking.
+overlay: vignette topOpacity 0.62-0.75, bottomOpacity 0.28-0.40
+titleFont: "EB Garamond" or "Playfair Display"
+titleTransform: "uppercase"
+titleSize: 48-62
+titleYPercent: 12-22
+titleColor: "#f5e6c8"
+showDivider: true
+dividerStyle: "dots"
+authorColor: "rgba(220,195,150,0.85)"
+authorYPercent: 91-94
+ornament: true
+accentLines: false
 ` : `
-Generate 4 MORE distinct cover styles for this book. Be creative and varied — try unexpected approaches:
-Consider: typographic minimalism, split-panel layouts, abstract expressionist, vintage poster, graphic novel aesthetic, high-fashion editorial, painterly portrait, symbolic still life.
-Each variant MUST have a unique styleName (e.g. "Typographic", "Vintage Poster", "Split Panel", "Abstract") and genuinely different imagePrompt and customLayout from any previous batch.
+Generate 4 genuinely UNEXPECTED wildcard cover styles for this book. These should feel radically different from anything seen before.
+Push beyond conventional book covers — try: graphic novel panel layout, high-fashion editorial black & white, bold painterly portrait (face-forward if genre allows), conceptual still life as visual metaphor, moody liminal space photography aesthetic, constructivist geometric, Japanese woodblock influenced, stark brutalist, or any other bold artistic direction.
+Each variant MUST have a unique styleName that describes the AESTHETIC (not the genre) and a genuinely distinct imagePrompt and customLayout.
 Apply all the same genre/font rules from Parts 1-2. Mix archetypes freely.
 At least one variant should use titleWidthFill: true (if title is 1-3 words) with Abril Fatface.
 At least one variant should use a light/clean aesthetic (solid-block overlay or very low tint).
+Make each one feel like a different creative director's bold vision for this exact book.
 `}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
