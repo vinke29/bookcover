@@ -8,6 +8,7 @@ export interface BookInfo {
 }
 
 export interface CoverConcept {
+  styleName?: string
   imagePrompt: string
   titleFont: string
   titleColor: string
@@ -16,6 +17,14 @@ export interface CoverConcept {
   colorPalette: string[]
   mood: string
   customLayout?: CustomLayout
+}
+
+export interface GeneratedVariant {
+  concept: CoverConcept | null
+  imageUrl: string | null
+  cdnUrl: string | null
+  isLoading: boolean
+  error: string | null
 }
 
 /**

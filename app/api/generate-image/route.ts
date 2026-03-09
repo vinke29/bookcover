@@ -5,29 +5,32 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json()
+    // quality: 'preview' → Flux Schnell (fast, cheap, gallery thumbnails)
+    //          'final'   → Flux Pro     (best quality, selected cover)
+    const { prompt, quality = 'final' } = await req.json()
     const apiKey = process.env.FAL_KEY
 
     if (!apiKey) {
       return NextResponse.json({ error: 'FAL_KEY not set' }, { status: 500 })
     }
 
+    const isPreview = quality === 'preview'
+
     // Append universal quality suffix — reinforces the painterly illustration register
     const enhancedPrompt = `${prompt}, professional book cover illustration, painterly art style, cinematic lighting, ultra detailed, award-winning cover art, no text, no letters, no typography`
 
-    const res = await fetch('https://fal.run/fal-ai/flux-pro', {
+    const endpoint = isPreview ? 'fal-ai/flux/schnell' : 'fal-ai/flux-pro'
+    const body = isPreview
+      ? { prompt: enhancedPrompt, image_size: { width: 768, height: 1152 }, num_images: 1, num_inference_steps: 4 }
+      : { prompt: enhancedPrompt, image_size: { width: 768, height: 1152 }, num_images: 1, num_inference_steps: 28, guidance_scale: 4.5 }
+
+    const res = await fetch(`https://fal.run/${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Key ${apiKey}`,
       },
-      body: JSON.stringify({
-        prompt: enhancedPrompt,
-        image_size: { width: 768, height: 1152 },
-        num_images: 1,
-        num_inference_steps: 28,
-        guidance_scale: 4.5,
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!res.ok) {
