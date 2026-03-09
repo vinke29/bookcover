@@ -501,7 +501,7 @@ export default function Home() {
                             background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.10) 55%, rgba(255,255,255,0.06) 100%)',
                           }} />
                           <span style={{
-                            writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+                            writingMode: 'vertical-rl',
                             fontSize: 7, letterSpacing: '0.09em', color: spineText,
                             fontFamily: activeTemplate.titleStyle.fontFamily,
                             whiteSpace: 'nowrap', overflow: 'hidden',
