@@ -559,9 +559,9 @@ export default function Home() {
                         transform: `rotateX(${mockupRot.x}deg) rotateY(${mockupRot.y}deg)`,
                       }}>
                         <div style={{
-                          position: 'absolute', top: 0, left: 0,
+                          position: 'absolute', top: 0, left: -mSpine,
                           width: mSpine, height: mH,
-                          transformOrigin: 'left center',
+                          transformOrigin: 'right center',
                           transform: 'rotateY(-90deg)',
                           background: spineBg,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
